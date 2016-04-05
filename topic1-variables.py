@@ -1,6 +1,7 @@
 # This is a comment.
 
 # FIXME - Clean up the incorrect print functions.
+# TODO - Do more experiments with simple data types.
 
 # print is a built in python function.
 # When used with a single string parameter it will print the string to the terminal window.
