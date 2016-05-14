@@ -1,0 +1,37 @@
+# Dictionaries
+
+# Create an empty dictionary.
+tickersDict = dict()
+print(tickersDict)
+
+# This will output a list of all methods for strings.
+print('Dictionary methods')
+print(dir(tickersDict))
+
+tickersDict['AAPL'] = 'Apple'
+tickersDict['GOOG'] = 'Alphabet'
+print(tickersDict)
+msg = 'The number of key-value pairs in tickersDict is:  '
+print(msg + str(len(tickersDict)))
+
+# The in operator
+# Python uses hash tables for dictionaries.
+print('AAPL' in tickersDict)
+print('MSFT' in tickersDict)
+
+# The values method returns a list.
+vals = tickersDict.values()
+'Apple' in vals
+
+# Sorting dictionaries.
+d = {'A': 4, 'B': 3, 'C': 2, 'D': 1}
+print(d)
+
+# Sort the keys
+print(sorted(d))
+
+# Sort the values
+print(sorted(d.values()))
+
+# Sort the keys by the values.
+print(sorted(d, key=d.__getitem__))
