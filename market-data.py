@@ -1,6 +1,15 @@
 # Market Data
 import os
 import glob
+import datetime
+
+tickerIndex = 0
+dateIndex = 1
+openIndex = 2
+highIndex = 3
+lowIndex = 4
+closeIndex = 5
+volumeIndex = 6
 
 
 def filesToList():
@@ -20,16 +29,27 @@ def filesToList():
 
 
 def parseFiles(files):
-    r = []
+    tickerDictionary = dict()
     for file in files:
         print(file)
         fhand = open(file)
         for line in fhand:
-            line = line.strip()
-            tickerData = line.split(',')
-            r.append(tickerData)
 
-    return r
+            line = line.strip()
+            tickerList = line.split(',')
+
+            tickerSymbol = tickerList[0]
+            date = tickerList[1]
+
+            if tickerSymbol not in tickerDictionary:
+                dateDictionary = dict()
+                dateDictionary[date] = tickerList
+                tickerDictionary[tickerSymbol] = dateDictionary
+            else:
+                dateDictionary = tickerDictionary[tickerSymbol]
+                dateDictionary[date] = tickerList
+
+    return tickerDictionary
 
 
 def getPortfolio():
@@ -45,59 +65,57 @@ def getPortfolio():
     return portfolio
 
 
-def printTickerData(marketData, tickerName):
-    tickerIndex = 0
-    dateIndex = 1
-    openIndex = 2
-    highIndex = 3
-    lowIndex = 4
-    closeIndex = 5
-    volumeIndex = 6
+def printTickerData(tickerDictionary, tickerName):
+
+    if tickerName.upper() not in tickerDictionary:
+        print('No ticker found.')
+        return
 
     print('\n\t\t' + tickerName.upper())
-    print('\nDate\t\tOpen\tHigh\tLow\tClose\tVolume')
+    print('\nDate\t\tOpen\t\tHigh\t\tLow\t\tClose\t\tChange\t\tVolume')
 
-    for tickerList in marketData:
-        if tickerName.upper() == tickerList[tickerIndex]:
-            date = tickerList[dateIndex]
-            date = date[4:6] + '/' + date[6:8] + '/' + date[0:4]
-            display = date + '\t'
-            display = display + tickerList[openIndex] + '\t'
-            display = display + tickerList[highIndex] + '\t'
-            display = display + tickerList[lowIndex] + '\t'
-            display = display + tickerList[closeIndex] + '\t'
-            display = display + tickerList[volumeIndex]
-            print(display)
+    dateDictionary = tickerDictionary[tickerName.upper()]
+
+    for date in sorted(dateDictionary.keys()):
+        dayList = dateDictionary[date]
+        change = float(dayList[closeIndex]) - float(dayList[openIndex])
+        dateDisplay = date[4:6] + '/' + date[6:8] + '/' + date[0:4]
+        d = dateDisplay + '\t'
+        d = d + '${:7,.2f}'.format(float(dayList[openIndex])) + '\t'
+        d = d + '${:7,.2f}'.format(float(dayList[highIndex])) + '\t'
+        d = d + '${:7,.2f}'.format(float(dayList[lowIndex])) + '\t'
+        d = d + '${:7,.2f}'.format(float(dayList[closeIndex])) + '\t'
+        d = d + '${:7,.2f}'.format(change) + '\t'
+        d = d + '{:11,.0f}'.format(float(dayList[volumeIndex]))
+        print(d)
 
     print('\n')
 
 
 def printLastDateForTicker(marketData, tickerName):
-    tickerIndex = 0
-    dateIndex = 1
-    openIndex = 2
-    highIndex = 3
-    lowIndex = 4
-    closeIndex = 5
-    volumeIndex = 6
 
-    for tickerList in marketData:
-        if tickerName.upper() == tickerList[tickerIndex]:
-            saveTickerList = tickerList
+    if tickerName not in marketData:
+        return
+
+    daysDict = marketData[tickerName.upper()]
+    daysListSorted = sorted(daysDict)
+    lastDay = daysListSorted[-1]
+    dayList = daysDict[lastDay]
 
     # Create the date display.
-    date = tickerList[dateIndex]
+    date = dayList[dateIndex]
     date = date[4:6] + '/' + date[6:8] + '/' + date[0:4]
+    change = float(dayList[closeIndex]) - float(dayList[openIndex])
 
     # create the display string
-    display = tickerList[tickerIndex] + '\t' + date + '\t'
-    display = display + tickerList[openIndex] + '\t'
-    display = display + tickerList[highIndex] + '\t'
-    display = display + tickerList[lowIndex] + '\t'
-    display = display + tickerList[closeIndex] + '\t'
-    display = display + tickerList[volumeIndex]
-    print(display)
-    print('\n')
+    d = dayList[tickerIndex] + '\t' + date + '\t'
+    d = d + '${:7,.2f}'.format(float(dayList[openIndex])) + '\t'
+    d = d + '${:7,.2f}'.format(float(dayList[highIndex])) + '\t'
+    d = d + '${:7,.2f}'.format(float(dayList[lowIndex])) + '\t'
+    d = d + '${:7,.2f}'.format(float(dayList[closeIndex])) + '\t'
+    d = d + '${:7,.2f}'.format(change) + '\t'
+    d = d + '{:11,.0f}'.format(int(dayList[volumeIndex]))
+    print(d)
 
 # Main execution
 
@@ -106,8 +124,11 @@ print('Loading Files ...')
 marketData = filesToList()
 print(str(len(marketData)) + ' items.')
 
+today = datetime.date.today()
+print('\nToday\'s date: ' + str(today) + '\n')
+
 # Print the last pricing information for each ticker in the portfolio
-print('Ticker\tDate\t\tOpen\tHigh\tLow\tClose\tVolume')
+print('Ticker\tDate\t\tOpen\t\tHigh\t\tLow\t\tClose\t\tChange\t\tVolume')
 portfolio = getPortfolio()
 for ticker in portfolio:
     printLastDateForTicker(marketData, ticker)
