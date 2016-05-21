@@ -68,3 +68,9 @@ elif 'A' > 'a':
     print('A is greater than a')
 else:
     print('A is equal to a')
+
+import string
+print(string.punctuation)
+stringWithPuncuations = 'a-b,c!;:'
+print(stringWithPuncuations)
+print(stringWithPuncuations.translate(None, string.punctuation))
