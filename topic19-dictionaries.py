@@ -1,4 +1,5 @@
 # Dictionaries
+print('Fun with Dictionaries')
 
 # Create an empty dictionary.
 tickersDict = dict()
@@ -35,3 +36,24 @@ print(sorted(d.values()))
 
 # Sort the keys by the values.
 print(sorted(d, key=d.__getitem__))
+
+# d.get returns the value at the first parameter location
+# or if it does not exist the second parameter is the default value.
+longword = 'Supercalifragilisticexpialidocious'
+d = dict()
+count = 0
+for character in longword:
+    count = count + 1
+    d[character] = d.get(character, 0) + 1
+print(longword)
+print(count)
+print(d)
+
+for key in d:
+    print(key)
+
+keysAsList = d.keys()
+print(keysAsList)
+keysAsList.sort()
+for k in keysAsList:
+    print(k, d[k])
