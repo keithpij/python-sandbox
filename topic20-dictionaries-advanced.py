@@ -18,6 +18,7 @@ info = info[index+1:]
 
 tickerData = dict()
 tickerData[date] = info
+tickersDict = dict()
 tickersDict[tickerSymbol] = tickerData
 print(tickersDict)
 print(len(tickersDict))
