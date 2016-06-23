@@ -58,6 +58,10 @@ for n in [1, 4, 6, 8, 12]:
     total = total + n
 print('Total: ', total)
 
+# using the range function.
+for i in range(1,10):
+    print(i)
+
 # Working with numberic lists.
 # It may be tempting to write your own loop for determining minimum, maximum, and sum
 # but these are builtin functions in python.

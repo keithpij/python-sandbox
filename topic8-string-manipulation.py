@@ -2,6 +2,31 @@
 
 print('String Manipulation')
 
+# Stripping a string.
+# Notice that the strip functions do not change the original variable.
+# They create a new sring and return it.
+needsStripping = '   test   '
+print(needsStripping.strip())
+print(needsStripping)
+
+print(needsStripping.lstrip())
+print(needsStripping)
+
+print(needsStripping.rstrip())
+print(needsStripping)
+
+# Converting to uppercase and lowercase.
+# Notice that these functions do not change the original variables.
+allUppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+print(allUppercase.lower())
+print(allUppercase)
+
+allLowercase = 'abcdefghijklmnopqrstuvwxyz'
+print(allLowercase.upper())
+print(allLowercase)
+
+x = raw_input('Ready to move on?')
+
 print('Getting the first character of a string.')
 drink = 'Single Malt Scotch'
 character = drink[0]

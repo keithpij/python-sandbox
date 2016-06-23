@@ -32,21 +32,32 @@ def parseFiles(files):
     tickerDictionary = dict()
     for file in files:
         print(file)
+
+        # Read through each line of the file.
         fhand = open(file)
         for line in fhand:
 
             line = line.strip()
             tickerList = line.split(',')
 
-            tickerSymbol = tickerList[0]
-            date = tickerList[1]
+            symbol = tickerList[tickerIndex]
+            date = tickerList[dateIndex]
+            openPrice = tickerList[openIndex]
+            high = tickerList[highIndex]
+            low = tickerList[lowIndex]
+            close = tickerList[closeIndex]
+            volume = tickerList[volumeIndex]
 
-            if tickerSymbol not in tickerDictionary:
+            t = Ticker(symbol, date, openPrice, high, low, close, volume)
+            if close > 100:
+                print(t.Symbol)
+
+            if symbol not in tickerDictionary:
                 dateDictionary = dict()
                 dateDictionary[date] = tickerList
-                tickerDictionary[tickerSymbol] = dateDictionary
+                tickerDictionary[symbol] = dateDictionary
             else:
-                dateDictionary = tickerDictionary[tickerSymbol]
+                dateDictionary = tickerDictionary[symbol]
                 dateDictionary[date] = tickerList
 
     return tickerDictionary
@@ -117,6 +128,18 @@ def printLastDateForTicker(marketData, tickerName):
     d = d + '{:11,.0f}'.format(int(dayList[volumeIndex]))
     print(d)
 
+
+class Ticker:
+    def __init__(self, symbol, date, openPrice, high, low, close, volume):
+        self.Symbol = symbol
+        self.Date = date
+        self.Open = openPrice
+        self.High = high
+        self.Low = low
+        self.Close = close
+        self.Volume = volume
+
+
 # Main execution
 
 # Load files.
@@ -133,7 +156,7 @@ portfolio = getPortfolio()
 for ticker in portfolio:
     printLastDateForTicker(marketData, ticker)
 
-# User input
+# User request
 while True:
     tickerName = raw_input('Enter a ticker symbol:  ')
 
