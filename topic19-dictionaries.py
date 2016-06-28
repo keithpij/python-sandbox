@@ -57,3 +57,16 @@ print(keysAsList)
 keysAsList.sort()
 for k in keysAsList:
     print(k, d[k])
+
+d = dict()
+f = dict()
+f['description'] = 'Test ticket - Eileen'
+f['summary'] = 'Test Story Ticket'
+f['project'] = 'TEST'
+f['assignee'] = 'zkaqo35'
+f['type'] = 'story'
+f['trackerid'] = 'qzap://QzTracker/ticket/000-00000'
+d['fields'] = f
+
+print(d)
+print(type(d))

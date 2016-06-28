@@ -44,7 +44,8 @@ print(listOfTuples)
 for key, val in d.items():
     print(key, val)
 
-# Using tuples as dictionary keys.
+# Using tuples as dictionary keys.  Since tuples are immutable like strings
+# they are also a sequence that can be used as a key.
 marketData = dict()
 marketData['MSFT', '20160516'] = 51.83
 marketData['MSFT', '20160517'] = 50.51
@@ -55,9 +56,21 @@ marketData['MSFT', '20160520'] = 50.62
 for ticker, date in marketData:
     print ticker, date, marketData[ticker, date]
 
+# Tuples are good as a return value from a function when you need to return
+# more than one value.
+
+# Tuples are also good when passing multiple values to a function.
+# No aliasing will occur.
+
+# Finally, tuples are good as a sequence into a dictionary as shown above.
 
 def someFunction(a, b):
+    a = 'changed'
     return a, b
 
-returnTuple = someFunction(3, 4)
+x = 3
+y = 4
+returnTuple = someFunction(x, y)
+print(x)
+print(y)
 print(returnTuple)
