@@ -216,14 +216,6 @@ def getTrialAccounts(exportDate, accounts):
     return matches
 
 
-def getLastQuarterTrials(startDate, endDate, accounts):
-    matches = dict()
-    for id in accounts:
-        a = accounts[id]
-        if a.TrialEndsOn >= startDate and a.TrialEndsOn <= endDate:
-            matches[id] = accounts[id]
-    return matches
-
 def getUserRequests(exportDate, accounts, users):
     # User request loop
     while True:
@@ -253,10 +245,6 @@ def getUserRequests(exportDate, accounts, users):
             accounts, count = getAllData(exportDate)
 
         if command[0:6] == '-trial':
-            matches = getTrialAccounts(exportDate, accounts)
-            printBrief(matches)
-
-        if command[0:6] == '-lqt':
             matches = getTrialAccounts(exportDate, accounts)
             printBrief(matches)
 
