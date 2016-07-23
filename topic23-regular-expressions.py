@@ -9,7 +9,7 @@ if re.search('token', line):
 else:
     print('token not found')
 
-# Using the '^' so specify that the search string must be at
+# Using the '^' to specify that the search string must be at
 # the beginning of the string being searched.
 line = 'xtoken xxxxxxxxx'
 print(line)
