@@ -9,33 +9,66 @@ import useranalytics
 
 class Account:
 
+    FIELD_COUNT = 0
+    ACCOUNTID_INDEX = -1
+    ACCOUNTNAME_INDEX = -1
+    FIRSTOWNERNAME_INDEX = -1
+    FIRSTOWNEREMAIL_INDEX = -1
+    ORGANIZATIONSIZE_INDEX = -1
+    PHONENUMBER_INDEX = -1
+    PROMOCODE_INDEX = -1
+    USERSCOUNT_INDEX = -1
+    SEATSCOUNT_INDEX = -1
+    AUTHORSCOUNT_INDEX = -1
+    USERQUOTA_INDEX = -1
+    REPOSCOUNT_INDEX = -1
+    PLATFORMREPOSCOUNT_INDEX = -1
+    ACTIVEREPOSCOUNT_INDEX = -1
+    ACTIVEPLATFORMREPOSCOUNT_INDEX = -1
+    CREATEDON_INDEX = -1
+    TRIALENDSON_INDEX = -1
+    PLANNAME_INDEX = -1
+    PLANPRICE_INDEX = -1
+    PLANCODE_INDEX = -1
+    BILLINGINTERVAL_INDEX = -1
+    SUBSCRIPTIONPERIODSTART_INDEX = -1
+    SUBSCRIPTIONPERIODEND_INDEX = -1
+    UTMCAMPAIGN_INDEX = -1
+
     def __init__(self, accountDetailsList):
 
-        # accountDetailsList is a List that should have 17 entries.
-        # If it has more than there was a comma in the account name field.
-        if len(accountDetailsList) >= 19:
+        # accountDetailsList is a List that should have the same number of
+        # entries as the header line.
+        # If it has more, than there was a comma in the account name field.
+        if len(accountDetailsList) != FIELD_COUNT:
             # print(accountDetailsList[0] + ' ' + str(len(accountDetailsList)))
             accountDetailsList = fixList(accountDetailsList)
 
         # print(accountDetailsList)
-        self.AccountId = accountDetailsList[0]
-        self.AccountName = accountDetailsList[1].strip()
-        self.FirstOwnerName = accountDetailsList[2].strip()
-        self.FirstOwnerEmail = accountDetailsList[3].strip()
-        self.OrganizationSize = accountDetailsList[4].strip()
-        self.PhoneNumber = accountDetailsList[5].strip()
-        self.PromoCode = accountDetailsList[6].strip()
-        self.UsersCount = MyDataTools.toInt(accountDetailsList[7])  # this could change over time
-        self.ReposCount = MyDataTools.toInt(accountDetailsList[8])  # this could change over time
-        self.CreatedOn = accountDetailsList[9]
-        self.TrialEndsOn = MyDataTools.toDate(accountDetailsList[10])
-        self.PlanName = accountDetailsList[11]
-        self.PlanPrice = accountDetailsList[12]
-        self.PlanCode = accountDetailsList[13]
-        self.BillingInterval = accountDetailsList[14]
-        self.SubscriptionPeriodStart = MyDataTools.toDate(accountDetailsList[15])
-        self.SubscriptionPeriodEnd = MyDataTools.toDate(accountDetailsList[16])
-        self.UtmCampaign = accountDetailsList[17]
+        self.AccountId = accountDetailsList[ACCOUNTID_INDEX]
+        self.AccountName = accountDetailsList[ACCOUNTNAME_INDEX].strip()
+        self.FirstOwnerName = accountDetailsList[FIRSTOWNERNAME_INDEX].strip()
+        self.FirstOwnerEmail = accountDetailsList[FIRSTOWNEREMAIL_INDEX].strip()
+        self.OrganizationSize = accountDetailsList[ORGANIZATIONSIZE_INDEX].strip()
+        self.PhoneNumber = accountDetailsList[PHONENUMBER_INDEX].strip()
+        self.PromoCode = accountDetailsList[PROMOCODE_INDEX].strip()
+        self.UsersCount = MyDataTools.toInt(accountDetailsList[USERSCOUNT_INDEX])  # this could change over time
+        self.SeatCount = MyDataTools.toInt(accountDetailsList[SEATSCOUNT_INDEX])
+        self.AuthorsCount = MyDataTools.toInt(accountDetailsList[AUTHORSCOUNT_INDEX])
+        self.UserQuota = MyDataTools.toInt(accountDetailsList[USERQUOTA_INDEX])
+        self.ReposCount = MyDataTools.toInt(accountDetailsList[REPOSCOUNT_INDEX])  # this could change over time
+        self.PlatformReposCount = MyDataTools.toInt(accountDetailsList[PLATFORMREPOSCOUNT_INDEX])
+        self.ActiveReposCount = MyDataTools.toInt(accountDetailsList[ACTIVEREPOSCOUNT_INDEX])
+        self.ActivePlatformReposCount = MyDataTools.toInt(accountDetailsList[ACTIVEPLATFORMREPOSCOUNT_INDEX])
+        self.CreatedOn = accountDetailsList[CREATEDON_INDEX]
+        self.TrialEndsOn = MyDataTools.toDate(accountDetailsList[TRIALENDSON_INDEX])
+        self.PlanName = accountDetailsList[PLANNAME_INDEX]
+        self.PlanPrice = accountDetailsList[PLANPRICE_INDEX]
+        self.PlanCode = accountDetailsList[PLANCODE_INDEX]
+        self.BillingInterval = accountDetailsList[BILLINGINTERVAL_INDEX]
+        self.SubscriptionPeriodStart = MyDataTools.toDate(accountDetailsList[SUBSCRIPTIONPERIODSTART_INDEX])
+        self.SubscriptionPeriodEnd = MyDataTools.toDate(accountDetailsList[SUBSCRIPTIONPERIODEND_INDEX])
+        self.UtmCampaign = accountDetailsList[UTMCAMPAIGN_INDEX]
         # Need fields for:
         # credit card churn date
         # customer cancellation date
@@ -47,63 +80,119 @@ class Account:
 
 def fixList(l):
     length = len(l)
+    delta = length - FIELD_COUNT
 
-    # Create 18 entries in the new list.
-    newList = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]
+    # Initialize the new list.
+    newList = list()
+    for i in range(0, FIELD_COUNT-1):
+        newList.append('')
 
-    newList[17] = l[length-1]   # This is the last index
-    newList[16] = l[length-2]
-    newList[15] = l[length-3]
-    newList[14] = l[length-4]
-    newList[13] = l[length-5]
-    newList[12] = l[length-6]
-    newList[11] = l[length-7]
-    newList[10] = l[length-8]
-    newList[9] = l[length-9]
-    newList[8] = l[length-10]
-    newList[7] = l[length-11]
-    newList[6] = l[length-12]
-    newList[5] = l[length-13]
-    newList[4] = l[length-14]
-    newList[3] = l[length-15]
-    newList[2] = l[length-16]
+    # Everything up to the Account name index is fine.
+    # This should just be the Account Name field.
+    for i in range(0, ACCOUNTNAME_INDEX):
+        newList[i] = l[i]
 
-    # Account name field is the problematic field.
-    # The for loop will not iterate on the final value.
-    # So this needs to be length-16 and not length-17.
-    for i in range(1, length-16):
-        if i == 1:
-            newList[1] = l[1]
+    # Fix up the account name field.
+    for i in range(ACCOUNTNAME_INDEX, ACCOUNTNAME_INDEX + delta + 1):
+        if i == ACCOUNTNAME_INDEX:
+            newList[ACCOUNTNAME_INDEX] = l[i]
         else:
-            newList[1] = newList[1] + ', ' + l[length-17]
+            newList[ACCOUNTNAME_INDEX] = newList[ACCOUNTNAME_INDEX] + ', ' + l[i]
 
-    # Account id field.  This should be a guid.
-    newList[0] = l[0]
+    # Get everything after the account name field.
+    for i in range(ACCOUNTNAME_INDEX + delta + 1, length-1):
+        newList[i-delta] = l[i]
+
+    print(delta)
+    print(l)
+    print(newList)
 
     return newList
 
 
+def setIndecies(headerList):
+    # The field count from the header line will help to correct scenarios
+    # where the user put a comma in the Account Name field.
+    global FIELD_COUNT
+    FIELD_COUNT = len(headerList)
+
+    # By not hard coding these value we are insulated from changes to the
+    # underlying export file.
+    for i in range(0, FIELD_COUNT-1):
+        h = headerList[i]
+        if h == 'account_id':
+            Account.ACCOUNTID_INDEX = i
+        elif h == 'account_name':
+            Account.ACCOUNTNAME_INDEX = i
+        elif h == 'first_owner_name':
+            Account.FIRSTOWNERNAME_INDEX = i
+        elif h == 'first_owner_email':
+            Account.FIRSTOWNEREMAIL_INDEX = i
+        elif h == 'organization_size':
+            Account.ORGANIZATIONSIZE_INDEX = i
+        elif h == 'phone_number':
+            Account.PHONENUMBER_INDEX = i
+        elif h == 'promo_code':
+            Account.PROMOCODE_INDEX = i
+        elif h == 'users_count':
+            Account.USERSCOUNT_INDEX = i
+        elif h == 'seats_count':
+            Account.SEATSCOUNT_INDEX = i
+        elif h == 'authors_count':
+            Account.AUTHORSCOUNT_INDEX = i
+        elif h == 'user_quota':
+            Account.USERQUOTA_INDEX = i
+        elif h == 'repos_count':
+            Account.REPOSCOUNT_INDEX = i
+        elif h == 'platform_repos_count':
+            Account.PLATFORMREPOSCOUNT_INDEX = i
+        elif h == 'active_repos_count':
+            Account.ACTIVEREPOSCOUNT_INDEX = i
+        elif h == 'active_platform_repos_count':
+            Account.ACTIVEPLATFORMREPOSCOUNT_INDEX = i
+        elif h == 'created_on':
+            Account.CREATEDON_INDEX = i
+        elif h == 'trial_ends_on':
+            Account.TRIALENDSON_INDEX = i
+        elif h == 'plan_name':
+            Account.PLANNAME_INDEX = i
+        elif h == 'plan_price':
+            Account.PLANPRICE_INDEX = i
+        elif h == 'plan_code':
+            Account.PLANCODE_INDEX = i
+        elif h == 'billing_interval':
+            Account.BILLINGINTERVAL_INDEX = i
+        elif h == 'subscription_period_start':
+            Account.SUBSCRIPTIONPERIODSTART_INDEX = i
+        elif h == 'subscription_period_end':
+            Account.SUBSCRIPTIONPERIODEND_INDEX = i
+        elif h == 'utm_campaign':
+            Account.UTMCAMPAIGN_INDEX = i
+
+
 def loadAccountFile(file):
 
-    # Read through each line of the file.
-    count = 0
+    # Setup needed variables
+    accountCount = 0
     lineCount = 0
     accounts = dict()
     fhand = gzip.open(file)
+
+    # Read through each line of the file.
     for line in fhand:
         lineCount = lineCount + 1
 
-        # The first line contains the column headers.
-        if lineCount == 1:
-            continue
-
         line = line.strip()
         detailsList = line.split(',')
-        a = Account(detailsList)
-        accounts[a.AccountId] = a
-        count = count + 1
+        # The first line contains the column headers.
+        if lineCount == 1:
+            setIndecies(detailsList)
+        else:
+            a = Account(detailsList)
+            accounts[a.AccountId] = a
+            accountCount = accountCount + 1
 
-    return accounts, count
+    return accounts, accountCount
 
 
 def pad(field, width):
@@ -291,7 +380,13 @@ def getAllData(exportDate):
 
 
 # Start of main processing.
-exportDate = datetime.date.today() # MyDataTools.toDate('2016-07-01')
+exportDate = datetime.date.today()  # MyDataTools.toDate('2016-07-01')
 accounts, users = getAllData(exportDate)
+
+if accounts is None:
+    ed = raw_input('Specify a new export date (YYYY-MM-DD):  ')
+    exportDate = MyDataTools.toDate(ed)
+    accounts, users = getAllData(exportDate)
+
 if accounts is not None:
     getUserRequests(exportDate, accounts, users)

@@ -99,6 +99,7 @@ def getExports(exportDate):
     print('Looking for todays account and user exports.')
     for fileKey in bucket.list():
         count = count + 1
+        #print(fileKey.name)
         if re.search(accountRegex, fileKey.name):
             accountKey = fileKey
         if re.search(userRegex, fileKey.name):
@@ -118,7 +119,7 @@ def getExports(exportDate):
         f = os.path.join(DATA_DIR, userKey.name)
         if not os.path.exists(f):
             print('Downloading ' + userKey.name)
-            accountKey.get_contents_to_filename(f)
+            userKey.get_contents_to_filename(f)
         else:
             print(f + ' already exists')
 
