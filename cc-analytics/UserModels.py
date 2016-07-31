@@ -35,12 +35,6 @@ class User:
 
     def __init__(self, userDetailsList):
 
-        # accountDetailsList is a List that should have the same number of
-        # entries as the header line.
-        # If it has more, than there was a comma in the account name field.
-        if len(userDetailsList) != FIELD_COUNT:
-            userDetailsList = fixList(userDetailsList)
-
         d = User.IndexDict
         self.UserId = userDetailsList[d[User.USERID_HEADER]].strip()
         self.Email = userDetailsList[d[User.EMAIL_HEADER]].strip()
@@ -60,37 +54,6 @@ class User:
         self.ActiveReposCount = DataTools.toInt(userDetailsList[d[User.ACTIVEREPOSCOUNT_HEADER]])
         self.ActiveClassicReposCount = DataTools.toInt(userDetailsList[d[User.ACTIVECLASSICREPOSCOUNT_HEADER]])
         self.ActivePlatformReposCount = DataTools.toInt(userDetailsList[d[User.ACTIVEPLATFORMREPOSCOUNT_HEADER]])
-
-
-def fixList(l):
-    print(l)
-    length = len(l)
-    delta = length - FIELD_COUNT
-
-    # Initialize the new list.
-    newList = list()
-    for i in range(0, FIELD_COUNT):
-        newList.append('')
-
-    indexToFix = User.IndexDict[User.FULLNAME_HEADER]
-
-    # Everything up to the Account name index is fine.
-    # This should just be the Account Name field.
-    for i in range(0, indexToFix):
-        newList[i] = l[i]
-
-    # Fix up the account name field.
-    for i in range(indexToFix, indexToFix + delta + 1):
-        if i == indexToFix:
-            newList[indexToFix] = l[i]
-        else:
-            newList[indexToFix] = newList[indexToFix] + ', ' + l[i]
-
-    # Get everything after the account name field.
-    for i in range(indexToFix + delta + 1, length-1):
-        newList[i-delta] = l[i]
-
-    return newList
 
 
 def setIndecies(headerList):
@@ -123,9 +86,6 @@ def loadUserFile(file):
     reader = csv.reader(fhand)
     for line in reader:
         lineCount = lineCount + 1
-
-        # line = line.strip()
-        # detailsList = line.split(',')
 
         # The first line contains the column headers.
         if lineCount == 1:
