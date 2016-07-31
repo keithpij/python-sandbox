@@ -178,17 +178,25 @@ def getAllData(exportDate):
         else:
             print('Not connected to the internet.  Cannot download account and user exports.')
 
-    if accountFile is not None and userFile is not None:
-        print('Loading ...')
+    if accountFile is not None:
+        print('Loading account data ...')
         # print('Loading ' + userFile)
         accounts, aCount = AccountModels.loadAccountFile(accountFile)
-        users, uCount = UserModels.loadUserFile(userFile)
-        print('Number of accounts:  ' + str(aCount))
-        print('Number of Users:  ' + str(uCount))
-        return accounts, users
+        print('Total number of account records:  ' + str(aCount))
     else:
-        print('No data found.')
-        return None, None
+        accounts = None
+        print('No account data found.')
+
+    if userFile is not None:
+        print('Loading user data ...')
+        # print('Loading ' + userFile)
+        users, uCount = UserModels.loadUserFile(userFile)
+        print('Total number of user records:  ' + str(uCount))
+    else:
+        users = None
+        print('No account data found.')
+
+    return accounts, users
 
 
 # Start of main processing.

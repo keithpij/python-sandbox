@@ -1,6 +1,7 @@
 # Account class
 import gzip
 import DataTools
+import csv
 
 
 class Account:
@@ -35,12 +36,6 @@ class Account:
     IndexDict = dict()
 
     def __init__(self, accountDetailsList):
-
-        # accountDetailsList is a List that should have the same number of
-        # entries as the header line.
-        # If it has more, than there was a comma in the account name field.
-        if len(accountDetailsList) != FIELD_COUNT:
-            accountDetailsList = fixList(accountDetailsList)
 
         d = Account.IndexDict
         self.AccountId = accountDetailsList[d[Account.ACCOUNTID_HEADER]]
@@ -77,36 +72,6 @@ class Account:
         # Classic Repo count
 
 
-def fixList(l):
-    length = len(l)
-    delta = length - FIELD_COUNT
-
-    # Initialize the new list.
-    newList = list()
-    for i in range(0, FIELD_COUNT):
-        newList.append('')
-
-    indexToFix = Account.IndexDict[Account.ACCOUNTNAME_HEADER]
-
-    # Everything up to the Account name index is fine.
-    # This should just be the Account Name field.
-    for i in range(0, indexToFix):
-        newList[i] = l[i]
-
-    # Fix up the account name field.
-    for i in range(indexToFix, indexToFix + delta + 1):
-        if i == indexToFix:
-            newList[indexToFix] = l[i]
-        else:
-            newList[indexToFix] = newList[indexToFix] + ', ' + l[i]
-
-    # Get everything after the account name field.
-    for i in range(indexToFix + delta + 1, length-1):
-        newList[i-delta] = l[i]
-
-    return newList
-
-
 def setIndecies(headerList):
     # The field count from the header line will help to correct scenarios
     # where the user put a comma in the Account Name field.
@@ -126,18 +91,17 @@ def loadAccountFile(file):
     lineCount = 0
     accounts = dict()
     fhand = gzip.open(file)
+    reader = csv.reader(fhand)
 
     # Read through each line of the file.
-    for line in fhand:
+    for line in reader:
         lineCount = lineCount + 1
 
-        line = line.strip()
-        detailsList = line.split(',')
         # The first line contains the column headers.
         if lineCount == 1:
-            setIndecies(detailsList)
+            setIndecies(line)
         else:
-            a = Account(detailsList)
+            a = Account(line)
             accounts[a.AccountId] = a
             accountCount = accountCount + 1
 
