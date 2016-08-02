@@ -113,6 +113,7 @@ def showHelp():
     print('-h to show this menu')
     print('-cc to get a customer count')
     print('-uc to get a user count')
+    print('-trial to get a list of all account in trial')
 
 
 def getTrialAccounts(exportDate, accounts):
