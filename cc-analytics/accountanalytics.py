@@ -112,6 +112,7 @@ def showHelp():
     print('-id:[id] for a lookup by company id')
     print('-h to show this menu')
     print('-cc to get a customer count')
+    print('-uc to get a user count')
 
 
 def getTrialAccounts(exportDate, accounts):
