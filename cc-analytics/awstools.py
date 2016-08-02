@@ -99,7 +99,7 @@ def getExports(exportDate):
     print('Looking for todays account and user exports.')
     for fileKey in bucket.list():
         count = count + 1
-        #print(fileKey.name)
+        print(fileKey.name)
         if re.search(accountRegex, fileKey.name):
             accountKey = fileKey
         if re.search(userRegex, fileKey.name):
@@ -124,7 +124,7 @@ def getExports(exportDate):
             print(f + ' already exists')
 
 
-def getEC2Instances(region):
+def stopEC2Instances(region):
     # regions = ['us-east-1', 'us-west-1', 'us-west-2', 'eu-west-1', 'eu-central-1', 'sa-east-1',
     #         'ap-southeast-1', 'ap-southeast-2', 'ap-northeast-1', 'ap-northeast-2', 'ap-south-1']
 
@@ -149,4 +149,4 @@ def getEC2Instances(region):
 
 
 # Main execution
-# getEC2Instances('us-east-1')
+# stopEC2Instances('us-east-1')

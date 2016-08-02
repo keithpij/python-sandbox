@@ -108,6 +108,12 @@ def getChurnedAccounts(exportDate, daysInPast, accounts):
     return matches
 
 
+def showHelp():
+    print('-id:[id] for a lookup by company id')
+    print('-h to show this menu')
+    print('-cc to get a customer count')
+
+
 def getTrialAccounts(exportDate, accounts):
     matches = dict()
     for id in accounts:
@@ -125,6 +131,9 @@ def getUserRequests(exportDate, accounts, users):
         # Quit the input loop.
         if command == '-q':
             break
+
+        if command == '-h':
+            showHelp()
 
         if command[0:3] == '-cc':
             c = getCustomerCount(exportDate, accounts)
@@ -200,7 +209,7 @@ def getAllData(exportDate):
 
 
 # Start of main processing.
-exportDate = DataTools.toDate('2016-06-17')  # datetime.date.today()  # DataTools.toDate('2016-07-01')
+exportDate = datetime.date.today()  # DataTools.toDate('2016-07-01')  DataTools.toDate('2016-06-17')
 accounts, users = getAllData(exportDate)
 
 if accounts is None:
