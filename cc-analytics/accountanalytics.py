@@ -200,7 +200,7 @@ def getAllData(exportDate):
 
 
 # Start of main processing.
-exportDate = DataTools.toDate('2016-06-17')  # datetime.date.today()  # DataTools.toDate('2016-07-01')
+exportDate = datetime.date.today()  # DataTools.toDate('2016-07-01')  DataTools.toDate('2016-06-17')
 accounts, users = getAllData(exportDate)
 
 if accounts is None:
