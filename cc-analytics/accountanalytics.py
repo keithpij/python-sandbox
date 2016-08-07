@@ -91,7 +91,7 @@ def getCustomerCount(exportDate, accounts):
 
 
 def getChurnedAccounts(exportDate, daysInPast, accounts):
-    daysInPastDelta = datetime.timedelta(days=30)
+    daysInPastDelta = datetime.timedelta(days=daysInPast)
     fromDate = exportDate - daysInPastDelta
     matches = dict()
     for id in accounts:
@@ -109,9 +109,15 @@ def getChurnedAccounts(exportDate, daysInPast, accounts):
 
 
 def showHelp():
-    print('-id:[id] for a lookup by company id')
-    print('-h to show this menu')
     print('-cc to get a customer count')
+    print('-churn:[days in past]')
+    print('-id:[id] for a lookup by company id')
+    print('-n:[regular expression]')
+    print('-load:[export date]')
+    print('-h to show this menu')
+    print('-uc to get a user count')
+    print('-q to quit this application')
+    print('-trial to get a list of all account in trial')
 
 
 def getTrialAccounts(exportDate, accounts):
