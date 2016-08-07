@@ -99,7 +99,7 @@ def getExports(exportDate):
     print('Looking for todays account and user exports.')
     for fileKey in bucket.list():
         count = count + 1
-        print(fileKey.name)
+        # print(fileKey.name)
         if re.search(accountRegex, fileKey.name):
             accountKey = fileKey
         if re.search(userRegex, fileKey.name):
