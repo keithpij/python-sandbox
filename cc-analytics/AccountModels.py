@@ -54,7 +54,7 @@ class Account:
             self.PlatformReposCount = DataTools.toInt(accountDetailsList[d[Account.PLATFORMREPOSCOUNT_HEADER]])
             self.ActiveReposCount = DataTools.toInt(accountDetailsList[d[Account.ACTIVEREPOSCOUNT_HEADER]])
             self.ActivePlatformReposCount = DataTools.toInt(accountDetailsList[d[Account.ACTIVEPLATFORMREPOSCOUNT_HEADER]])
-        self.CreatedOn = accountDetailsList[d[Account.CREATEDON_HEADER]]
+        self.CreatedOn = DataTools.toDate(accountDetailsList[d[Account.CREATEDON_HEADER]])
         self.TrialEndsOn = DataTools.toDate(accountDetailsList[d[Account.TRIALENDSON_HEADER]])
         self.PlanName = accountDetailsList[d[Account.PLANNAME_HEADER]]
         self.PlanPrice = accountDetailsList[d[Account.PLANPRICE_HEADER]]
