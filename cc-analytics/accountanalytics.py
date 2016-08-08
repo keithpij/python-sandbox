@@ -90,6 +90,33 @@ def getCustomerCount(exportDate, accounts):
     return count
 
 
+def getNewCustomers(exportDate, daysInPast, accounts):
+    daysInPastDelta = datetime.timedelta(days=daysInPast)
+    fromDate = exportDate - daysInPastDelta
+    matches = dict()
+    for id in accounts:
+        a = accounts[id]
+
+        # This logic does not capture the condition where an account returns
+        # after their trial and signs up.
+
+        # The account did not start a subscription.
+        if a.SubscriptionPeriodStart is None:
+            continue
+
+        # The account is still in trial.
+        if a.TrialEndsOn >= exportDate:
+            continue
+
+        # If we get this far the trial ends between the calculated from datetime
+        # and the export date.
+        if a.TrialEndsOn >= fromDate:
+            if a.SubscriptionPeriodStart >= fromDate:
+                matches[id] = accounts[id]
+
+    return matches
+
+
 def getChurnedAccounts(exportDate, daysInPast, accounts):
     daysInPastDelta = datetime.timedelta(days=daysInPast)
     fromDate = exportDate - daysInPastDelta
@@ -100,7 +127,7 @@ def getChurnedAccounts(exportDate, daysInPast, accounts):
             continue
         if a.SubscriptionPeriodEnd < fromDate:
             continue
-        # Use yesterday to determine churn.  This elimanates account whose
+        # Use yesterday to determine churn.  This eliminates account whose
         # subscription expires today but have not had their credit card proessed.
         yesterday = exportDate - datetime.timedelta(days=1)
         if a.SubscriptionPeriodEnd <= yesterday:
@@ -110,14 +137,15 @@ def getChurnedAccounts(exportDate, daysInPast, accounts):
 
 def showHelp():
     print('-cc to get a customer count')
-    print('-churn:[days in past]')
-    print('-id:[id] for a lookup by company id')
-    print('-n:[regular expression]')
-    print('-load:[export date]')
+    print('-churn:[days in past] to get a list of customers that churned between the current export date and the specified days in the past.')
     print('-h to show this menu')
-    print('-uc to get a user count')
+    print('-id:[id] for a lookup by company id')
+    print('-load:[export date]')
+    print('-name:[regular expression] to get a list of companies by name.')
+    print('-new:[days in past] to get a list of new customers between the current export date and specified days in the past.')
     print('-q to quit this application')
     print('-trial to get a list of all account in trial')
+    print('-uc to get a user count')
 
 
 def getTrialAccounts(exportDate, accounts):
@@ -150,8 +178,8 @@ def getUserRequests(exportDate, accounts, users):
             print('Total number of users: ' + str(c))
 
         # Search by name.  The search text must be a regular expression.
-        if command[0:2] == '-n':
-            regx = command[3:]
+        if command[0:5] == '-name':
+            regx = command[6:]
             matches = searchByName(regx, accounts)
             printBrief(matches)
 
@@ -170,6 +198,14 @@ def getUserRequests(exportDate, accounts, users):
             if daysInPast == 0:
                 daysInPast = 30
             matches = getChurnedAccounts(exportDate, daysInPast, accounts)
+            printBrief(matches)
+
+        if command[0:4] == '-new':
+            d = command[5:]
+            daysInPast = DataTools.toInt(d)
+            if daysInPast == 0:
+                daysInPast = 30
+            matches = getNewCustomers(exportDate, daysInPast, accounts)
             printBrief(matches)
 
         if command[0:3] == '-id':
