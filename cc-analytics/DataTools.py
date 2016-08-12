@@ -25,3 +25,16 @@ def toInt(s):
     except Exception:
         i = 0
     return i
+
+
+def toFloat(s):
+    f = 0
+    if len(s) < 1:
+        return 0
+    if s[0] == '$':
+        s = s[1:]
+    try:
+        f = float(s)
+    except Exception:
+        f = 0
+    return f
