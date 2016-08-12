@@ -32,7 +32,9 @@ class Account:
     SUBSCRIPTIONPERIODSTART_HEADER = 'subscription_period_start'
     SUBSCRIPTIONPERIODEND_HEADER = 'subscription_period_end'
     UTMCAMPAIGN_HEADER = 'utm_campaign'
-
+    MRR_HEADER = 'mrr'
+    PRIMARY_SCM_HEADER = 'primary_scm'
+    
     IndexDict = dict()
 
     def __init__(self, accountDetailsList):
@@ -54,6 +56,9 @@ class Account:
             self.PlatformReposCount = DataTools.toInt(accountDetailsList[d[Account.PLATFORMREPOSCOUNT_HEADER]])
             self.ActiveReposCount = DataTools.toInt(accountDetailsList[d[Account.ACTIVEREPOSCOUNT_HEADER]])
             self.ActivePlatformReposCount = DataTools.toInt(accountDetailsList[d[Account.ACTIVEPLATFORMREPOSCOUNT_HEADER]])
+            self.ActiveClassicReposCount = self.ActiveReposCount - self.ActivePlatformReposCount
+            self.MRR = DataTools.toFloat(accountDetailsList[d[Account.MRR_HEADER]])
+            self.PrimarySCM = accountDetailsList[d[Account.MRR_HEADER]]
         self.CreatedOn = DataTools.toDate(accountDetailsList[d[Account.CREATEDON_HEADER]])
         self.TrialEndsOn = DataTools.toDate(accountDetailsList[d[Account.TRIALENDSON_HEADER]])
         self.PlanName = accountDetailsList[d[Account.PLANNAME_HEADER]]
