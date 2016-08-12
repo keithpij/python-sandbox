@@ -13,8 +13,9 @@ volumeIndex = 6
 
 
 def filesToList():
-    currentWorkingDir = os.getcwd()
-    pricingDir = os.path.join(currentWorkingDir, 'eod-data')
+    # currentWorkingDir = os.getcwd()
+    DATA_DIR = '/Users/keithpijanowski/Documents'
+    pricingDir = os.path.join(DATA_DIR, 'eod-data')
     nasdaqDirSearch = os.path.join(pricingDir, 'NASDAQ*.txt')
     nyseDirSearch = os.path.join(pricingDir, 'NYSE*.txt')
 
@@ -49,8 +50,8 @@ def parseFiles(files):
             volume = tickerList[volumeIndex]
 
             t = Ticker(symbol, date, openPrice, high, low, close, volume)
-            if close > 100:
-                print(t.Symbol)
+            # if close > 100:
+            #    print(t.Symbol)
 
             if symbol not in tickerDictionary:
                 dateDictionary = dict()
@@ -64,8 +65,9 @@ def parseFiles(files):
 
 
 def getPortfolio():
-    currentWorkingDir = os.getcwd()
-    pricingDir = os.path.join(currentWorkingDir, 'eod-data')
+    # currentWorkingDir = os.getcwd()
+    DATA_DIR = '/Users/keithpijanowski/Documents'
+    pricingDir = os.path.join(DATA_DIR, 'eod-data')
     portfolioFile = os.path.join(pricingDir, 'portfolio.txt')
     portfolio = []
     fhand = open(portfolioFile)
