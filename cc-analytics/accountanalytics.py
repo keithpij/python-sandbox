@@ -117,6 +117,15 @@ def getPayingCustomerCount(exportDate, accounts):
     return count
 
 
+def getTotalMRR(exportDate, accounts):
+    total = 0
+    for id in accounts:
+        a = accounts[id]
+        if a.MRR > 0:
+            total = total + a.MRR
+    return total
+
+
 def getNewCustomers(exportDate, daysInPast, accounts):
     daysInPastDelta = datetime.timedelta(days=daysInPast)
     fromDate = exportDate - daysInPastDelta
@@ -168,6 +177,7 @@ def showHelp():
     print('-h to show this menu')
     print('-id:[id] for a lookup by company id')
     print('-load:[export date]')
+    print('-mrr to get the total MRR')
     print('-name:[regular expression] to get a list of companies by name.')
     print('-new:[days in past] to get a list of new customers between the current export date and specified days in the past.')
     print('-pc to get a count of paying customers')
@@ -196,6 +206,10 @@ def getUserRequests(exportDate, accounts, users):
 
         if command == '-h':
             showHelp()
+
+        if command[0:4] == '-mrr':
+            t = getTotalMRR(exportDate, accounts)
+            print('Total MRR: ' + str(t))
 
         if command[0:3] == '-cc':
             c = getCustomerCount(exportDate, accounts)
