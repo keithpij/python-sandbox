@@ -2,14 +2,7 @@
 import os
 import glob
 import datetime
-
-tickerIndex = 0
-dateIndex = 1
-openIndex = 2
-highIndex = 3
-lowIndex = 4
-closeIndex = 5
-volumeIndex = 6
+import TickerModels
 
 
 def filesToList():
@@ -41,25 +34,17 @@ def parseFiles(files):
             line = line.strip()
             tickerList = line.split(',')
 
-            symbol = tickerList[tickerIndex]
-            date = tickerList[dateIndex]
-            openPrice = tickerList[openIndex]
-            high = tickerList[highIndex]
-            low = tickerList[lowIndex]
-            close = tickerList[closeIndex]
-            volume = tickerList[volumeIndex]
-
-            t = Ticker(symbol, date, openPrice, high, low, close, volume)
+            t = TickerModels.Ticker(tickerList)
             # if close > 100:
             #    print(t.Symbol)
 
-            if symbol not in tickerDictionary:
+            if t.Symbol not in tickerDictionary:
                 dateDictionary = dict()
-                dateDictionary[date] = tickerList
-                tickerDictionary[symbol] = dateDictionary
+                dateDictionary[t.Date] = t
+                tickerDictionary[t.Symbol] = dateDictionary
             else:
-                dateDictionary = tickerDictionary[symbol]
-                dateDictionary[date] = tickerList
+                dateDictionary = tickerDictionary[t.Symbol]
+                dateDictionary[t.Date] = t
 
     return tickerDictionary
 
@@ -90,16 +75,15 @@ def printTickerData(tickerDictionary, tickerName):
     dateDictionary = tickerDictionary[tickerName.upper()]
 
     for date in sorted(dateDictionary.keys()):
-        dayList = dateDictionary[date]
-        change = float(dayList[closeIndex]) - float(dayList[openIndex])
+        t = dateDictionary[date]
         dateDisplay = date[4:6] + '/' + date[6:8] + '/' + date[0:4]
         d = dateDisplay + '\t'
-        d = d + '${:7,.2f}'.format(float(dayList[openIndex])) + '\t'
-        d = d + '${:7,.2f}'.format(float(dayList[highIndex])) + '\t'
-        d = d + '${:7,.2f}'.format(float(dayList[lowIndex])) + '\t'
-        d = d + '${:7,.2f}'.format(float(dayList[closeIndex])) + '\t'
-        d = d + '${:7,.2f}'.format(change) + '\t'
-        d = d + '{:11,.0f}'.format(float(dayList[volumeIndex]))
+        d = d + '${:7,.2f}'.format(t.Open) + '\t'
+        d = d + '${:7,.2f}'.format(t.High) + '\t'
+        d = d + '${:7,.2f}'.format(t.Low) + '\t'
+        d = d + '${:7,.2f}'.format(t.Close) + '\t'
+        d = d + '${:7,.2f}'.format(t.Change) + '\t'
+        d = d + '{:11,.0f}'.format(t.Volume)
         print(d)
 
     print('\n')
@@ -113,39 +97,28 @@ def printLastDateForTicker(marketData, tickerName):
     daysDict = marketData[tickerName.upper()]
     daysListSorted = sorted(daysDict)
     lastDay = daysListSorted[-1]
-    dayList = daysDict[lastDay]
+    t = daysDict[lastDay]
 
     # Create the date display.
-    date = dayList[dateIndex]
+    date = t.Date
     date = date[4:6] + '/' + date[6:8] + '/' + date[0:4]
-    change = float(dayList[closeIndex]) - float(dayList[openIndex])
+    change = float(t.Close) - float(t.Open)
 
     # create the display string
-    d = dayList[tickerIndex] + '\t' + date + '\t'
-    d = d + '${:7,.2f}'.format(float(dayList[openIndex])) + '\t'
-    d = d + '${:7,.2f}'.format(float(dayList[highIndex])) + '\t'
-    d = d + '${:7,.2f}'.format(float(dayList[lowIndex])) + '\t'
-    d = d + '${:7,.2f}'.format(float(dayList[closeIndex])) + '\t'
+    d = t.Symbol + '\t' + date + '\t'
+    d = d + '${:7,.2f}'.format(float(t.Open)) + '\t'
+    d = d + '${:7,.2f}'.format(float(t.High)) + '\t'
+    d = d + '${:7,.2f}'.format(float(t.Low)) + '\t'
+    d = d + '${:7,.2f}'.format(float(t.Close)) + '\t'
     d = d + '${:7,.2f}'.format(change) + '\t'
-    d = d + '{:11,.0f}'.format(int(dayList[volumeIndex]))
+    d = d + '{:11,.0f}'.format(int(t.Volume))
     print(d)
-
-
-class Ticker:
-    def __init__(self, symbol, date, openPrice, high, low, close, volume):
-        self.Symbol = symbol
-        self.Date = date
-        self.Open = openPrice
-        self.High = high
-        self.Low = low
-        self.Close = close
-        self.Volume = volume
 
 
 # Main execution
 
 # Load files.
-print('Loading Files ...')
+print('Loading Data ...')
 marketData = filesToList()
 print(str(len(marketData)) + ' items.')
 
