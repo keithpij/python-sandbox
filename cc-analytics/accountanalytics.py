@@ -19,7 +19,7 @@ def pad(field, width):
         f = f + ' '
     return f
 
-
+# TODO - this function is messy.  Fix later.
 def printBrief(matches):
 
     header = pad('Id', 30) + pad('Acc. Name', 15) + pad('User Count', 12)
@@ -72,6 +72,24 @@ def searchByName(rexp, accounts):
     return matches
 
 
+def searchBySCM(rexp, accounts):
+    matches = dict()
+    for id in accounts:
+        a = accounts[id]
+        if re.search(rexp, a.PrimarySCM.lower()):
+            matches[id] = a
+    return matches
+
+
+def searchByPlan(rexp, accounts):
+    matches = dict()
+    for id in accounts:
+        a = accounts[id]
+        if re.search(rexp, a.PlanCode.lower()):
+            matches[id] = a
+    return matches
+
+
 def searchById(rexp, accounts):
     matches = dict()
     for id in accounts:
@@ -88,6 +106,24 @@ def getCustomerCount(exportDate, accounts):
             if a.SubscriptionPeriodEnd >= exportDate:
                 count = count + 1
     return count
+
+
+def getPayingCustomerCount(exportDate, accounts):
+    count = 0
+    for id in accounts:
+        a = accounts[id]
+        if a.MRR > 0:
+            count = count + 1
+    return count
+
+
+def getTotalMRR(exportDate, accounts):
+    total = 0
+    for id in accounts:
+        a = accounts[id]
+        if a.MRR > 0:
+            total = total + a.MRR
+    return total
 
 
 def getNewCustomers(exportDate, daysInPast, accounts):
@@ -141,8 +177,10 @@ def showHelp():
     print('-h to show this menu')
     print('-id:[id] for a lookup by company id')
     print('-load:[export date]')
+    print('-mrr to get the total MRR')
     print('-name:[regular expression] to get a list of companies by name.')
     print('-new:[days in past] to get a list of new customers between the current export date and specified days in the past.')
+    print('-pc to get a count of paying customers')
     print('-q to quit this application')
     print('-trial to get a list of all account in trial')
     print('-uc to get a user count')
@@ -169,8 +207,16 @@ def getUserRequests(exportDate, accounts, users):
         if command == '-h':
             showHelp()
 
+        if command[0:4] == '-mrr':
+            t = getTotalMRR(exportDate, accounts)
+            print('Total MRR: ' + str(t))
+
         if command[0:3] == '-cc':
             c = getCustomerCount(exportDate, accounts)
+            print('Total number of customers: ' + str(c))
+
+        if command[0:3] == '-pc':
+            c = getPayingCustomerCount(exportDate, accounts)
             print('Total number of customers: ' + str(c))
 
         if command[0:3] == '-uc':
@@ -181,6 +227,16 @@ def getUserRequests(exportDate, accounts, users):
         if command[0:5] == '-name':
             regx = command[6:]
             matches = searchByName(regx, accounts)
+            printBrief(matches)
+
+        if command[0:4] == '-scm':
+            regx = command[4:]
+            matches = searchBySCM(regx, accounts)
+            printBrief(matches)
+
+        if command[0:5] == '-plan':
+            regx = command[6:]
+            matches = searchByPlan(regx, accounts)
             printBrief(matches)
 
         if command[0:5] == '-load':
