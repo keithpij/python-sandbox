@@ -2,6 +2,7 @@
 import datetime
 import os
 import TickerModels
+import IndexModels
 
 
 def getPortfolio():
@@ -75,6 +76,8 @@ def printLastDateForTicker(marketData, tickerName):
 # Load files.
 print('Loading Data ...')
 tickerDictionary = TickerModels.LoadFiles()
+indexDictionary = IndexModels.LoadFiles()
+
 print(str(len(tickerDictionary)) + ' items.')
 
 today = datetime.date.today()
@@ -82,13 +85,18 @@ print('\nToday\'s date: ' + str(today) + '\n')
 
 # Print the last pricing information for each ticker in the portfolio
 print('Ticker\tDate\t\tOpen\t\tHigh\t\tLow\t\tClose\t\tChange\t\tVolume')
+# Print the indecies.
+IndexModels.PrintLastDateForIndex(indexDictionary, 'DJI')
+IndexModels.PrintLastDateForIndex(indexDictionary, 'NAST')
+
+# Loop through the portfolio.
 portfolio = getPortfolio()
 for ticker in portfolio:
     printLastDateForTicker(tickerDictionary, ticker)
 
 # User request
 while True:
-    tickerName = raw_input('Enter a ticker symbol:  ')
+    tickerName = input('Enter a ticker symbol:  ')
 
     if tickerName == 'quit':
         break
