@@ -1,57 +1,12 @@
 # Market Data
-import os
-import glob
 import datetime
+import os
 import TickerModels
-
-
-def filesToList():
-    # currentWorkingDir = os.getcwd()
-    DATA_DIR = '/Users/keithpijanowski/Documents'
-    pricingDir = os.path.join(DATA_DIR, 'eod-data')
-    nasdaqDirSearch = os.path.join(pricingDir, 'NASDAQ*.txt')
-    nyseDirSearch = os.path.join(pricingDir, 'NYSE*.txt')
-
-    # Notice how two lists can be added together.
-    nasdaqFiles = glob.glob(nasdaqDirSearch)
-    nyseFiles = glob.glob(nyseDirSearch)
-    allFiles = nasdaqFiles + nyseFiles
-
-    marketList = parseFiles(allFiles)
-
-    return marketList
-
-
-def parseFiles(files):
-    tickerDictionary = dict()
-    for file in files:
-        print(file)
-
-        # Read through each line of the file.
-        fhand = open(file)
-        for line in fhand:
-
-            line = line.strip()
-            tickerList = line.split(',')
-
-            t = TickerModels.Ticker(tickerList)
-            # if close > 100:
-            #    print(t.Symbol)
-
-            if t.Symbol not in tickerDictionary:
-                dateDictionary = dict()
-                dateDictionary[t.Date] = t
-                tickerDictionary[t.Symbol] = dateDictionary
-            else:
-                dateDictionary = tickerDictionary[t.Symbol]
-                dateDictionary[t.Date] = t
-
-    return tickerDictionary
 
 
 def getPortfolio():
     # currentWorkingDir = os.getcwd()
-    DATA_DIR = '/Users/keithpijanowski/Documents'
+    DATA_DIR = '/Users/keithpij/Documents'
     pricingDir = os.path.join(DATA_DIR, 'eod-data')
     portfolioFile = os.path.join(pricingDir, 'portfolio.txt')
     portfolio = []
@@ -119,8 +74,8 @@ def printLastDateForTicker(marketData, tickerName):
 
 # Load files.
 print('Loading Data ...')
-marketData = filesToList()
-print(str(len(marketData)) + ' items.')
+tickerDictionary = TickerModels.LoadFiles()
+print(str(len(tickerDictionary)) + ' items.')
 
 today = datetime.date.today()
 print('\nToday\'s date: ' + str(today) + '\n')
@@ -129,7 +84,7 @@ print('\nToday\'s date: ' + str(today) + '\n')
 print('Ticker\tDate\t\tOpen\t\tHigh\t\tLow\t\tClose\t\tChange\t\tVolume')
 portfolio = getPortfolio()
 for ticker in portfolio:
-    printLastDateForTicker(marketData, ticker)
+    printLastDateForTicker(tickerDictionary, ticker)
 
 # User request
 while True:
@@ -138,4 +93,4 @@ while True:
     if tickerName == 'quit':
         break
 
-    printTickerData(marketData, tickerName)
+    printTickerData(tickerDictionary, tickerName)
