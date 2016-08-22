@@ -21,10 +21,6 @@ def getPortfolio():
 
 def printTickerData(tickerDictionary, tickerName):
 
-    if tickerName.upper() not in tickerDictionary:
-        print('No ticker found.')
-        return
-
     print('\n\t\t' + tickerName.upper())
     print('\nDate\t\tOpen\t\tHigh\t\tLow\t\tClose\t\tChange\t\tVolume')
 
@@ -46,9 +42,6 @@ def printTickerData(tickerDictionary, tickerName):
 
 
 def printLastDateForTicker(marketData, tickerName):
-
-    if tickerName not in marketData:
-        return
 
     daysDict = marketData[tickerName.upper()]
     daysListSorted = sorted(daysDict)
@@ -100,5 +93,8 @@ while True:
 
     if tickerName == 'quit':
         break
+
+    if tickerName.upper() not in tickerDictionary:
+        print('No ticker found.')
 
     printTickerData(tickerDictionary, tickerName)

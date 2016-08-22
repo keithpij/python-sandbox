@@ -79,9 +79,6 @@ def parseFiles(files):
 
 def PrintLastDateForIndex(marketData, tickerName):
 
-    if tickerName not in marketData:
-        return
-
     daysDict = marketData[tickerName.upper()]
     daysListSorted = sorted(daysDict)
     lastDay = daysListSorted[-1]
