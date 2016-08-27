@@ -1,12 +1,12 @@
-# Ticker Models
+# Company Models
 import os
 import glob
 import DataTools
 
 
-class Ticker:
+class Company:
 
-    def __init__(self, tickerList):
+    def __init__(self, companyData):
 
         tickerIndex = 0
         dateIndex = 1
