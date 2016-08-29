@@ -50,7 +50,7 @@ def LoadFiles():
 def parseFiles(files):
     indexDictionary = dict()
     for file in files:
-        print(file)
+        #print(file)
 
         # Read through each line of the file.
         fhand = open(file)

@@ -1,6 +1,7 @@
 # Ticker Models
 import os
 import glob
+import DataTools
 
 
 class Ticker:
@@ -24,7 +25,7 @@ class Ticker:
         volume = tickerList[volumeIndex]
 
         self.Symbol = symbol
-        self.Date = date
+        self.Date = DataTools.toDate(date)
         self.Open = float(openPrice)
         self.High = float(high)
         self.Low = float(low)
@@ -53,7 +54,7 @@ def LoadFiles():
 def parseFiles(files):
     tickerDictionary = dict()
     for file in files:
-        print(file)
+        #print(file)
 
         # Read through each line of the file.
         fhand = open(file)

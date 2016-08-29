@@ -149,4 +149,5 @@ def stopEC2Instances(region):
 
 
 # Main execution
-# stopEC2Instances('us-east-1')
+if __name__ == '__main__':
+    stopEC2Instances('us-east-1')
