@@ -1,4 +1,4 @@
-# Company Models
+# Company Model
 import os
 import glob
 import DataTools
@@ -75,7 +75,7 @@ def parseFiles(files):
     return companyDictionary, companyCount
 
 
-def getUniqueSectorsIndustries(companyDictionary):
+def getSectorsAndIndustries(companyDictionary):
     # Create the sector and industry dictionaries.
     sectors = dict()
     industries = dict()
@@ -83,11 +83,26 @@ def getUniqueSectorsIndustries(companyDictionary):
     for symbol in companyDictionary.keys():
         c = companyDictionary[symbol]
 
+        # Sector data
         if c.Sector not in sectors:
-            sectors[c.Sector] = 1
-        else:
-            sectors[c.Sector] = sectors[c.Sector] + 1
+            d = dict()
+            d['count'] = 1
+            i = dict()
+            i[c.Industry] = 1
+            d['industries'] = i
+            sectors[c.Sector] = d
 
+        else:
+            d = sectors[c.Sector]
+            d['count'] = d['count'] + 1
+            i = d['industries']
+            if c.Industry not in i:
+                i[c.Industry] = 1
+            else:
+                i[c.Industry] = i[c.Industry] + 1
+            sectors[c.Sector] = d
+
+        # Industry data
         if c.Industry not in industries:
             industries[c.Industry] = 1
         else:
@@ -97,18 +112,24 @@ def getUniqueSectorsIndustries(companyDictionary):
 
 
 if __name__ == '__main__':
+
+    # Load the NASDAQ and NYSE files that contain company information.
     companyDictionary, count = LoadFiles()
     print(str(count) + ' companies.')
 
     # Get a dictionary of sectors and industries
-    sectors, industries = getUniqueSectorsIndustries(companyDictionary)
+    sectors, industries = getSectorsAndIndustries(companyDictionary)
 
     if len(sys.argv) > 1 and sys.argv[1] == '-s':
         print('\n\nSECTORS\n')
-        count = 0
+        lineCount = 0
         for s in sectors.keys():
-            count = count + 1
-            print(str(count) + '. \t' + s + ' ' + str(sectors[s]))
+            lineCount = lineCount + 1
+            d = sectors[s]
+            print(str(lineCount) + '. \t' + s + ' ' + str(d['count']))
+            for i in d['industries']:
+                print('\t\t' + i)
+
 
     if len(sys.argv) > 1 and sys.argv[1] == '-i':
         print('\n\nINDUSTRIES\n')
