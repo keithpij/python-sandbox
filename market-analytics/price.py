@@ -4,11 +4,11 @@ import glob
 import DataTools
 
 
-class Ticker:
+class Price:
 
-    def __init__(self, tickerList):
+    def __init__(self, priceList):
 
-        tickerIndex = 0
+        symbolIndex = 0
         dateIndex = 1
         openIndex = 2
         highIndex = 3
@@ -16,13 +16,13 @@ class Ticker:
         closeIndex = 5
         volumeIndex = 6
 
-        symbol = tickerList[tickerIndex]
-        date = tickerList[dateIndex]
-        openPrice = tickerList[openIndex]
-        high = tickerList[highIndex]
-        low = tickerList[lowIndex]
-        close = tickerList[closeIndex]
-        volume = tickerList[volumeIndex]
+        symbol = priceList[symbolIndex]
+        date = priceList[dateIndex]
+        openPrice = priceList[openIndex]
+        high = priceList[highIndex]
+        low = priceList[lowIndex]
+        close = priceList[closeIndex]
+        volume = priceList[volumeIndex]
 
         self.Symbol = symbol
         self.Date = DataTools.toDate(date)
@@ -46,13 +46,13 @@ def LoadFiles():
     nyseFiles = glob.glob(nyseDirSearch)
     allFiles = nasdaqFiles + nyseFiles
 
-    tickerDictionary = parseFiles(allFiles)
+    pricingDictionary = parseFiles(allFiles)
 
-    return tickerDictionary
+    return pricingDictionary
 
 
 def parseFiles(files):
-    tickerDictionary = dict()
+    pricingDictionary = dict()
     for file in files:
         #print(file)
 
@@ -61,18 +61,16 @@ def parseFiles(files):
         for line in fhand:
 
             line = line.strip()
-            tickerList = line.split(',')
+            priceList = line.split(',')
 
-            t = Ticker(tickerList)
-            # if close > 100:
-            #    print(t.Symbol)
+            p = Price(priceList)
 
-            if t.Symbol not in tickerDictionary:
+            if p.Symbol not in pricingDictionary:
                 dateDictionary = dict()
-                dateDictionary[t.Date] = t
-                tickerDictionary[t.Symbol] = dateDictionary
+                dateDictionary[p.Date] = p
+                pricingDictionary[p.Symbol] = dateDictionary
             else:
-                dateDictionary = tickerDictionary[t.Symbol]
-                dateDictionary[t.Date] = t
+                dateDictionary = pricingDictionary[p.Symbol]
+                dateDictionary[p.Date] = p
 
-    return tickerDictionary
+    return pricingDictionary

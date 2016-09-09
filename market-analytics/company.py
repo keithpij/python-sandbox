@@ -33,19 +33,21 @@ class Company:
         self.Sector = sector.strip()
         self.Industry = industry.strip()
         self.Date = date
+        self.CurrentPrice = 0
 
 
-def LoadFiles():
+def getCompanies():
     # currentWorkingDir = os.getcwd()
-    DATA_DIR = '/Users/keithpij/Documents'
+    DATA_DIR = os.path.join('/Users', 'keithpij', 'Documents')
+    #DATA_DIR = '/Users/keithpij/Documents'
     pricingDir = os.path.join(DATA_DIR, 'eod-data')
     fileSearch = os.path.join(pricingDir, '*companylist*.csv')
 
     allFiles = glob.glob(fileSearch)
 
-    companyDictionary = parseFiles(allFiles)
+    companyDictionary, count = parseFiles(allFiles)
 
-    return companyDictionary
+    return companyDictionary, count
 
 
 def parseFiles(files):
@@ -114,7 +116,7 @@ def getSectorsAndIndustries(companyDictionary):
 if __name__ == '__main__':
 
     # Load the NASDAQ and NYSE files that contain company information.
-    companyDictionary, count = LoadFiles()
+    companyDictionary, count = getCompanies()
     print(str(count) + ' companies.')
 
     # Get a dictionary of sectors and industries
