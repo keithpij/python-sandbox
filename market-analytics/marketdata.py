@@ -119,6 +119,7 @@ if __name__ == '__main__':
 
     # Load company files, company pricing files and index files.
     print('Loading Data ...')
+    '''
     companyDictionary, count = company.loaddatafromfiles()
     pricingDictionary = price.loaddatafromfiles()
     indexDictionary = index.loaddatafromfiles()
@@ -126,7 +127,6 @@ if __name__ == '__main__':
     companyDictionary, count = company.loaddatafromblobs()
     pricingDictionary = price.loaddatafromblobs()
     indexDictionary = index.loaddatafromblobs()
-    '''
 
     count = len(pricingDictionary) + len(indexDictionary) + len(companyDictionary)
     print(str(count) + ' items loaded.')
