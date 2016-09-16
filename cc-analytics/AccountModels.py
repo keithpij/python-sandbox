@@ -34,7 +34,7 @@ class Account:
     UTMCAMPAIGN_HEADER = 'utm_campaign'
     MRR_HEADER = 'mrr'
     PRIMARY_SCM_HEADER = 'primary_scm'
-    
+
     IndexDict = dict()
 
     def __init__(self, accountDetailsList):
@@ -95,7 +95,7 @@ def loadAccountFile(file):
     accountCount = 0
     lineCount = 0
     accounts = dict()
-    fhand = gzip.open(file)
+    fhand = gzip.open(file, 'r')
     reader = csv.reader(fhand)
 
     # Read through each line of the file.

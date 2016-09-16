@@ -1,3 +1,7 @@
+# Security files #
+###################
+market-analytics/storage-credentials.json
+
 # Compiled source #
 ###################
 *.com
@@ -26,6 +30,7 @@
 *.log
 *.sql
 *.sqlite
+market-analytics/market.sqlite3
 
 # OS generated files #
 ######################
