@@ -1,7 +1,12 @@
 # Index Models
 import os
 import glob
+import gzip
+import shutil
+import DataTools
 import googlecloudstorage2
+
+PRICING_BUCKET_NAME = 'keithpij-market-analytics'
 
 
 class Index:
@@ -25,7 +30,7 @@ class Index:
         volume = tickerList[volumeIndex]
 
         self.Symbol = symbol
-        self.Date = date
+        self.Date = DataTools.toDate(date)
         self.Open = float(openPrice)
         self.High = float(high)
         self.Low = float(low)
@@ -49,7 +54,7 @@ def loaddatafromblobs():
     return indexDictionary
 
 
-def parseblob(pricingDictionary, blob):
+def parseblob(indexDictionary, blob):
     handle = googlecloudstorage2.download_blob_as_bytes(PRICING_BUCKET_NAME, blob.name)
     handle.seek(0)
     gzip_file_handle = gzip.GzipFile(fileobj=handle, mode='r')
@@ -58,17 +63,21 @@ def parseblob(pricingDictionary, blob):
     for bline in gzip_file_handle:
         line = bline.decode()
         line = line.strip()
-        priceList = line.split(',')
+        indexList = line.split(',')
 
-        p = Price(priceList)
+        i = Index(indexList)
 
-        if p.Symbol not in pricingDictionary:
+        # Only interested in Dow Jones and NASDAQ.
+        if i.Symbol != 'DJI' and i.Symbol != 'NAST':
+            continue
+
+        if i.Symbol not in indexDictionary:
             dateDictionary = dict()
-            dateDictionary[p.Date] = p
-            pricingDictionary[p.Symbol] = dateDictionary
+            dateDictionary[i.Date] = i
+            indexDictionary[i.Symbol] = dateDictionary
         else:
-            dateDictionary = pricingDictionary[p.Symbol]
-            dateDictionary[p.Date] = p
+            dateDictionary = indexDictionary[i.Symbol]
+            dateDictionary[i.Date] = i
 
     # Close the stream
     gzip_file_handle.close()
