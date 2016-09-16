@@ -4,13 +4,15 @@ SQLite utilities
 import sqlite3
 import company
 
-INSERT_COMPANY = 'INSERT INTO companies (symbol, name, marketcap, adrtso, ipoyear, sector, industry) VALUES (?,?,?,?,?,?,?)'
+DROP_COMPANIES_TABLE = 'DROP TABLE IF EXISTS Companies'
+CREATE_COMPANIES_TABLE = 'CREATE TABLE Companies (symbol TEXT, name TEXT, marketcap REAL, adrtso TEXT, ipoyear INTEGER, sector TEXT, industry TEXT )'
+INSERT_COMPANY = 'INSERT INTO Companies (symbol, name, marketcap, adrtso, ipoyear, sector, industry) VALUES (?,?,?,?,?,?,?)'
 
 def createCompanyTable():
     cn = sqlite3.connect('market.sqlite3')
     cur = cn.cursor()
-    cur.execute('DROP TABLE IF EXISTS companies')
-    cur.execute('CREATE TABLE Companies (symbol TEXT, name TEXT, marketcap REAL, adrtso TEXT, ipoyear INTEGER, sector TEXT, industry TEXT )')
+    cur.execute(DROP_COMPANIES_TABLE)
+    cur.execute(CREATE_COMPANIES_TABLE)
 
     # Get the companies.
     companiesDictionary, count = company.getCompanies()

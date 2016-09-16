@@ -25,7 +25,7 @@ class Portfolio:
         return v
 
 
-    def loadportfolio():
+    def loadportfolio(companyDictionary):
         # currentWorkingDir = os.getcwd()
         DATA_DIR = '/Users/keithpij/Documents'
         pricingDir = os.path.join(DATA_DIR, 'eod-data')
@@ -49,7 +49,7 @@ class Holding:
         self.purchasedate = DataTools.toDate(purchasedate)
 
 
-def printPortfolio():
+def printPortfolio(companyDictionary, indexDictionary, pricingDictionary):
     today = datetime.date.today()
     print('\nToday\'s date: ' + str(today) + '\n')
 
@@ -59,12 +59,16 @@ def printPortfolio():
     index.PrintLastDateForIndex(indexDictionary, 'DJI')
     index.PrintLastDateForIndex(indexDictionary, 'NAST')
 
+    # Load the portfolio file.
+    holdings = Portfolio.loadportfolio(companyDictionary)  # Dictionary of Holdings.
+    portfolio = Portfolio(holdings)
+
     # Loop through the portfolio.
     for symbol in portfolio.Holdings:
-        printLastDateForTicker(symbol)
+        printLastDateForTicker(pricingDictionary, symbol)
 
 
-def printLastDateForTicker(symbol):
+def printLastDateForTicker(pricingDictionary, symbol):
     if symbol.upper() not in pricingDictionary:
         return
 
@@ -88,13 +92,9 @@ if __name__ == '__main__':
 
     # Load company, pricing, and index files.
     print('Loading Data ...')
-    companyDictionary, count = company.getCompanies()
+    companyDictionary, count = company.getallcompaniesfromfiles()
     pricingDictionary = price.LoadFiles()
     indexDictionary = index.LoadFiles()
 
-    # Load the portfolio file.
-    holdings = Portfolio.loadportfolio()  # Dictionary of Holdings.
-    portfolio = Portfolio(holdings)
-
     # Print the portfolio.
-    printPortfolio()
+    printPortfolio(companyDictionary, indexDictionary, pricingDictionary)

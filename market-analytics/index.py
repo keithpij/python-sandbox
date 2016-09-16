@@ -1,6 +1,7 @@
 # Index Models
 import os
 import glob
+import googlecloudstorage2
 
 
 class Index:
@@ -33,21 +34,61 @@ class Index:
         self.Volume = int(volume)
 
 
-def LoadFiles():
+def loaddatafromblobs():
+    # Get a list of blobs in the companies bucket.
+    blobsindex = googlecloudstorage2.get_blobs_with_prefix(PRICING_BUCKET_NAME, 'INDEX')
+
+    # Initialize the index dictionary.
+    indexDictionary = dict()
+
+    # Loop through each blob.
+    for blob in blobsindex:
+        print(blob.name)
+        parseblob(indexDictionary, blob)
+
+    return indexDictionary
+
+
+def parseblob(pricingDictionary, blob):
+    handle = googlecloudstorage2.download_blob_as_bytes(PRICING_BUCKET_NAME, blob.name)
+    handle.seek(0)
+    gzip_file_handle = gzip.GzipFile(fileobj=handle, mode='r')
+
+    # Loop through each line.
+    for bline in gzip_file_handle:
+        line = bline.decode()
+        line = line.strip()
+        priceList = line.split(',')
+
+        p = Price(priceList)
+
+        if p.Symbol not in pricingDictionary:
+            dateDictionary = dict()
+            dateDictionary[p.Date] = p
+            pricingDictionary[p.Symbol] = dateDictionary
+        else:
+            dateDictionary = pricingDictionary[p.Symbol]
+            dateDictionary[p.Date] = p
+
+    # Close the stream
+    gzip_file_handle.close()
+
+
+def loaddatafromfiles():
     # currentWorkingDir = os.getcwd()
     DATA_DIR = '/Users/keithpij/Documents'
-    pricingDir = os.path.join(DATA_DIR, 'eod-data')
+    pricingDir = os.path.join(DATA_DIR, 'eod-data', 'pricing')
     indexDirSearch = os.path.join(pricingDir, 'INDEX*.txt')
 
     # Notice how two lists can be added together.
     indexFiles = glob.glob(indexDirSearch)
 
-    indexDictionary = parseFiles(indexFiles)
+    indexDictionary = parsefiles(indexFiles)
 
     return indexDictionary
 
 
-def parseFiles(files):
+def parsefiles(files):
     indexDictionary = dict()
     for file in files:
         #print(file)
@@ -73,6 +114,9 @@ def parseFiles(files):
             else:
                 dateDictionary = indexDictionary[i.Symbol]
                 dateDictionary[i.Date] = i
+
+        # Close the file
+        fhand.close()
 
     return indexDictionary
 

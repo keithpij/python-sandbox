@@ -4,6 +4,11 @@ import glob
 import DataTools
 import csv
 import sys
+import googlecloudstorage2
+import io
+
+
+COMPANIES_BUCKET_NAME = 'keithpij-company-data'
 
 class Company:
 
@@ -36,7 +41,39 @@ class Company:
         self.CurrentPrice = 0
 
 
-def getCompanies():
+def loaddatafromblobs():
+    # Get a list of blobs in the companies bucket.
+    blobs = googlecloudstorage2.get_blobs(COMPANIES_BUCKET_NAME)
+
+    companyCount = 0
+    companyDictionary = dict()
+    for blob in blobs:
+        a = blob.name.split('.')
+        b = a[0]  # get rid of the file extension
+        c = b.split('-')
+        date = DataTools.toDate(c[-3] + c[-2] + c[-1])
+        print(blob.name)
+        print(date)
+
+        # Read through each line of the file.
+        lineCount = 0
+        filedata = googlecloudstorage2.download_blob_as_string(COMPANIES_BUCKET_NAME, blob.name)
+        f = io.StringIO(filedata)
+
+        reader = csv.reader(f)
+        for line in reader:
+            lineCount = lineCount + 1
+
+            # The first line contains the column headers.
+            if lineCount > 1:
+                c = Company(date, line)
+                companyDictionary[c.Symbol] = c
+                companyCount = companyCount + 1
+
+    return companyDictionary, companyCount
+
+
+def loaddatafromfiles():
     # currentWorkingDir = os.getcwd()
     DATA_DIR = os.path.join('/Users', 'keithpij', 'Documents')
     #DATA_DIR = '/Users/keithpij/Documents'
@@ -45,12 +82,12 @@ def getCompanies():
 
     allFiles = glob.glob(fileSearch)
 
-    companyDictionary, count = parseFiles(allFiles)
+    companyDictionary, count = parsefiles(allFiles)
 
     return companyDictionary, count
 
 
-def parseFiles(files):
+def parsefiles(files):
     companyCount = 0
     companyDictionary = dict()
     for file in files:
@@ -116,7 +153,7 @@ def getSectorsAndIndustries(companyDictionary):
 if __name__ == '__main__':
 
     # Load the NASDAQ and NYSE files that contain company information.
-    companyDictionary, count = getCompanies()
+    companyDictionary, count = loaddatafromblobs()
     print(str(count) + ' companies.')
 
     # Get a dictionary of sectors and industries

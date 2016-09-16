@@ -4,6 +4,9 @@ import os
 import sys
 import price
 import index
+import portfolio
+import company
+import search
 
 
 def printTickerData(tickerName, dailyPricingDict):
@@ -95,24 +98,38 @@ def getUserRequests():
                 d = params[1][3:]  # days in the past
                 d = int(d)
                 dailyPricingDict = getDateRange(dailyPricingDict, d)
-                printTickerData(t, dailyPricingDict)
+                printTickerData(s, dailyPricingDict)
             else:
                 print('Unrecogonized parameter ' + param(1)[0:2])
 
         if command[0:2] == '-p':
-            printPortfolio()
+            portfolio.printPortfolio(companyDictionary, indexDictionary, pricingDictionary)
 
 
-# Main execution
-# Passed arguments
-print(sys.argv)
+if __name__ == '__main__':
+    # Main execution
+    # Passed arguments
+    print(sys.argv)
 
-# Load ticker and index files.
-print('Loading Data ...')
-pricingDictionary = price.LoadFiles()
-indexDictionary = index.LoadFiles()
+    # Start off with a date range that is 30 days in the past.
+    enddate = datetime.date.today()
+    daysInPastDelta = datetime.timedelta(30)
+    startdate = enddate - daysInPastDelta
+    searchcriteria = search.Criteria(startdate, enddate)
 
-print(str(len(pricingDictionary)) + ' items loaded.')
+    # Load company files, company pricing files and index files.
+    print('Loading Data ...')
+    companyDictionary, count = company.loaddatafromfiles()
+    pricingDictionary = price.loaddatafromfiles()
+    indexDictionary = index.loaddatafromfiles()
+    '''
+    companyDictionary, count = company.loaddatafromblobs()
+    pricingDictionary = price.loaddatafromblobs()
+    indexDictionary = index.loaddatafromblobs()
+    '''
 
-# This function is a user request loop.
-getUserRequests()
+    count = len(pricingDictionary) + len(indexDictionary) + len(companyDictionary)
+    print(str(count) + ' items loaded.')
+
+    # This function is a user request loop.
+    getUserRequests()
