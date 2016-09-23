@@ -89,10 +89,20 @@ def uploadfiles():
     indexFiles = glob.glob(indexDirSearch)
     allfiles = nasdaqFiles + nyseFiles + indexFiles
 
+    # Get the blobs in the pricing bucket and create a dictionary to
+    # be used to test for the existance of the blob.
+    blobs = googlecloudstorage2.get_blobs(PRICING_BUCKET_NAME)
+    bd = dict()
+    for blob in blobs:
+        bd[blob.name] = None
+
     for file in allfiles:
         blobname = os.path.basename(file)
-        googlecloudstorage2.upload_blob('keithpij-market-analytics', file, blobname)
-        print(blobname)
+
+        # Determine if the file needs to be uploaded.
+        if not blobname in bd:
+            googlecloudstorage2.upload_blob('keithpij-market-analytics', file, blobname)
+            print('Uploading: ' + blobname)
 
 
 def loaddatafromblobs():
@@ -190,25 +200,4 @@ def parsefiles(files):
 
 if __name__ == '__main__':
     #ziptextfiles()
-    #uploadfiles()
-
-    # Get a list of blobs in the companies bucket.
-    blobsnasdaq = googlecloudstorage2.get_blobs_with_prefix(PRICING_BUCKET_NAME, 'NASDAQ')
-    blobsnyse = googlecloudstorage2.get_blobs_with_prefix(PRICING_BUCKET_NAME, 'NYSE')
-    blobs = blobsnasdaq + blobsnyse
-    print(blobs)
-
-    '''
-    handle = googlecloudstorage2.download_blob_as_bytes('keithpij-market-analytics', 'NYSE_20160909.txt.gz')
-    handle.seek(0)
-    gzip_file_handle = gzip.GzipFile(fileobj=handle, mode='r')
-    for bline in gzip_file_handle:
-        line = bline.decode()
-        line = line.strip()
-        priceList = line.split(',')
-
-        p = Price(priceList)
-        print(p.Symbol)
-
-    gzip_file_handle.close()
-    '''
+    uploadfiles()

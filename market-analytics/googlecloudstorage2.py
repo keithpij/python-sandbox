@@ -249,4 +249,8 @@ def copy_blob(bucket_name, blob_name, new_bucket_name, new_blob_name):
 if __name__ == '__main__':
 
     bucket = 'keithpij-market-analytics'
-    list_blobs_with_prefix(bucket, 'NASDAQ')
+    blobs = get_blobs_with_prefix(bucket, 'NASDAQ')
+    print(type(blobs))
+    print(blobs)
+    for blob in blobs:
+        print(blob.name)
