@@ -88,17 +88,19 @@ def getUserRequests():
                 print('Company ' + s + ' not found.')
                 continue
 
-            # All the pricing info for the specified ticker.
-            dailyPricingDict = pricingDictionary[s]
-
             # No days in the past specified.
             if len(params) == 1:
-                printTickerData(s, dailyPricingDict)
+                printTickerData(s, pricingDictionary[s])
             elif params[1][0:2] == '-d':
                 d = params[1][3:]  # days in the past
                 d = int(d)
-                dailyPricingDict = getDateRange(dailyPricingDict, d)
-                printTickerData(s, dailyPricingDict)
+                #dailyPricingDict = getDateRange(dailyPricingDict, d)
+                c = search.Criteria(daysinpast=d, symbol=s)
+                print(c.daysinpast)
+                print(c.symbol)
+                searchobj = search.Search(pricingDictionary)
+                resultDict = searchobj.getpricebydaterange(c)
+                printTickerData(s, resultDict)
             else:
                 print('Unrecogonized parameter ' + param(1)[0:2])
 
@@ -119,14 +121,15 @@ if __name__ == '__main__':
 
     # Load company files, company pricing files and index files.
     print('Loading Data ...')
-    '''
     companyDictionary, count = company.loaddatafromfiles()
     pricingDictionary = price.loaddatafromfiles()
     indexDictionary = index.loaddatafromfiles()
+
     '''
     companyDictionary, count = company.loaddatafromblobs()
     pricingDictionary = price.loaddatafromblobs()
     indexDictionary = index.loaddatafromblobs()
+    '''
 
     count = len(pricingDictionary) + len(indexDictionary) + len(companyDictionary)
     print(str(count) + ' items loaded.')
