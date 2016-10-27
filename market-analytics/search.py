@@ -27,6 +27,10 @@ class Criteria:
             self.startdate = self.enddate - daysInPastDelta
 
 
+    def __repr__(self):
+        return str(self.startdate) + ' - ' + str(self.enddate)
+
+
 class Search:
 
     def __init__(self, pricingDictionary):

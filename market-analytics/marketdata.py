@@ -2,11 +2,13 @@
 import datetime
 import os
 import sys
-import price
-import index
-import portfolio
+import models
 import company
+import portfolio
 import search
+import datatools
+import indexutilities
+import filetools
 
 
 def printTickerData(tickerName, dailyPricingDict):
@@ -62,14 +64,54 @@ def printWinners(w):
     print(str(count) + ' companies.')
 
 
+def listSectors():
+    print('\n\nSECTORS\n')
+    lineCount = 0
+    for s in sectors.keys():
+        lineCount = lineCount + 1
+        d = sectors[s]
+        print(str(lineCount) + '. \t' + s + ' ' + str(d['count']))
+        #for i in d['industries']:
+        #    print('\t\t' + i)
+
+
+def listIndustries():
+    print('\n\nINDUSTRIES\n')
+    lineCount = 0
+    for i in industries.keys():
+        lineCount += 1
+        d = industries[i]
+        print(str(lineCount) + '. \t' + i + ' ' + str(industries[i]))
+
+
+def showHelp():
+    print('-q to quit')
+    print('-ls to list all sectors')
+    print('-li to list all industries')
+    print('-h to show this help menu')
+    print('-w to find winners')
+    print('-d to change the days in the past for which pricing data is loaded')
+    print('-s to search the pricing dictionary for a ticker')
+    print('-p to print the latest pricing data for the portfolio')
+
+
 def getUserRequests():
+    # global variable
+    global searchcriteria
+
     # User request loop
     while True:
-        command = input('--> ')
+        command = input(str(searchcriteria) + ' --> ')
 
         # Quit the input loop.
         if command == '-q':
             break
+
+        if command == '-ls':
+            listSectors()
+
+        if command == '-li':
+            listIndustries()
 
         if command == '-h':
             showHelp()
@@ -78,31 +120,28 @@ def getUserRequests():
             winners = findWinners()
             printWinners(winners)
 
+        if command == '-zip':
+            filetools.zipTextFiles()
+
+        # Change days in the past.
+        if command[0:2] == '-d':
+            days = command[3:]
+            d = DataTools.toInt(days)
+            searchcriteria = search.Criteria(daysinpast=d)
+
         # Search by name.  The search text must be a regular expression.
         if command[0:2] == '-s':
-            params = command.split(' ')
-            s = params[0][3:].upper()
+            s = command[3:].upper()
 
             # Check and see if ticker symbol exists.
             if s not in pricingDictionary:
                 print('Company ' + s + ' not found.')
                 continue
 
-            # No days in the past specified.
-            if len(params) == 1:
-                printTickerData(s, pricingDictionary[s])
-            elif params[1][0:2] == '-d':
-                d = params[1][3:]  # days in the past
-                d = int(d)
-                #dailyPricingDict = getDateRange(dailyPricingDict, d)
-                c = search.Criteria(daysinpast=d, symbol=s)
-                print(c.daysinpast)
-                print(c.symbol)
-                searchobj = search.Search(pricingDictionary)
-                resultDict = searchobj.getpricebydaterange(c)
-                printTickerData(s, resultDict)
-            else:
-                print('Unrecogonized parameter ' + param(1)[0:2])
+            searchcriteria.symbol = s
+            searchobj = search.Search(pricingDictionary)
+            resultDict = searchobj.getpricebydaterange(searchcriteria)
+            printTickerData(s, resultDict)
 
         if command[0:2] == '-p':
             portfolio.printPortfolio(companyDictionary, indexDictionary, pricingDictionary)
@@ -114,21 +153,22 @@ if __name__ == '__main__':
     print(sys.argv)
 
     # Start off with a date range that is 30 days in the past.
-    enddate = datetime.date.today()
-    daysInPastDelta = datetime.timedelta(30)
-    startdate = enddate - daysInPastDelta
-    searchcriteria = search.Criteria(startdate, enddate)
+    global searchcriteria
+    searchcriteria = search.Criteria(daysinpast=60)
 
     # Load company files, company pricing files and index files.
+    # Get a dictionary of sectors and industries
     print('Loading Data ...')
-    companyDictionary, count = company.loaddatafromfiles()
-    pricingDictionary = price.loaddatafromfiles()
-    indexDictionary = index.loaddatafromfiles()
+    companyDictionary, count = filetools.loadCompanyFiles()
+    pricingDictionary = filetools.loadPricingFiles()
+    indexDictionary = filetools.loadIndexFiles()
+    sectors, industries = company.getSectorsAndIndustries(companyDictionary)
+    print(str(count) + ' companies')
 
     '''
     companyDictionary, count = company.loaddatafromblobs()
-    pricingDictionary = price.loaddatafromblobs()
-    indexDictionary = index.loaddatafromblobs()
+    pricingDictionary = models.loaddatafromblobs()
+    indexDictionary = indexutilities.loaddatafromblobs()
     '''
 
     count = len(pricingDictionary) + len(indexDictionary) + len(companyDictionary)

@@ -4,44 +4,18 @@ Market pricing classes and functions.
 import os
 import glob
 import gzip
+import csv
 import shutil
-import DataTools
+import datatools
 import googlecloudstorage2
+import models
+import company
+
 
 PRICING_BUCKET_NAME = 'keithpij-market-analytics'
 
 
-class Price:
-
-    def __init__(self, priceList):
-
-        symbolIndex = 0
-        dateIndex = 1
-        openIndex = 2
-        highIndex = 3
-        lowIndex = 4
-        closeIndex = 5
-        volumeIndex = 6
-
-        symbol = priceList[symbolIndex]
-        date = priceList[dateIndex]
-        openPrice = priceList[openIndex]
-        high = priceList[highIndex]
-        low = priceList[lowIndex]
-        close = priceList[closeIndex]
-        volume = priceList[volumeIndex]
-
-        self.Symbol = symbol
-        self.Date = DataTools.toDate(date)
-        self.Open = float(openPrice)
-        self.High = float(high)
-        self.Low = float(low)
-        self.Close = float(close)
-        self.Change = self.Close - self.Open
-        self.Volume = int(volume)
-
-
-def ziptextfiles():
+def zipTextFiles():
     DATA_DIR = '/Users/keithpij/Documents/eod-data'
     pricingDir = os.path.join(DATA_DIR, 'pricing')
 
@@ -72,7 +46,7 @@ def ziptextfiles():
             fhandin.close()
 
 
-def uploadfiles():
+def uploadPricingFiles():
     DATA_DIR = '/Users/keithpij/Documents/eod-data'
 
     pricingzippeddir = os.path.join(DATA_DIR, 'pricing-zipped')
@@ -105,7 +79,7 @@ def uploadfiles():
             print('Uploading: ' + blobname)
 
 
-def loaddatafromblobs():
+def loadPricingFromBlobs():
     # Get a list of blobs in the companies bucket.
     blobsnasdaq = googlecloudstorage2.get_blobs_with_prefix(PRICING_BUCKET_NAME, 'NASDAQ')
     blobsnyse = googlecloudstorage2.get_blobs_with_prefix(PRICING_BUCKET_NAME, 'NYSE')
@@ -116,7 +90,7 @@ def loaddatafromblobs():
     # NASDAQ
     for blob in blobsnasdaq:
         print(blob.name)
-        parseblob(pricingDictionary, blob)
+        parsePricingBlob(pricingDictionary, blob)
 
     # NYSE
     for blob in blobsnyse:
@@ -126,7 +100,7 @@ def loaddatafromblobs():
     return pricingDictionary
 
 
-def parseblob(pricingDictionary, blob):
+def parsePricingBlob(pricingDictionary, blob):
     handle = googlecloudstorage2.download_blob_as_bytes(PRICING_BUCKET_NAME, blob.name)
     handle.seek(0)
     gzip_file_handle = gzip.GzipFile(fileobj=handle, mode='r')
@@ -137,7 +111,7 @@ def parseblob(pricingDictionary, blob):
         line = line.strip()
         priceList = line.split(',')
 
-        p = Price(priceList)
+        p = models.Price(priceList)
 
         if p.Symbol not in pricingDictionary:
             dateDictionary = dict()
@@ -151,7 +125,39 @@ def parseblob(pricingDictionary, blob):
     gzip_file_handle.close()
 
 
-def loaddatafromfiles():
+def loadCompaniesFromBlobs():
+    # Get a list of blobs in the companies bucket.
+    blobs = googlecloudstorage2.get_blobs(COMPANIES_BUCKET_NAME)
+
+    companyCount = 0
+    companyDictionary = dict()
+    for blob in blobs:
+        a = blob.name.split('.')
+        b = a[0]  # get rid of the file extension
+        c = b.split('-')
+        date = datatools.toDate(c[-3] + c[-2] + c[-1])
+        print(blob.name)
+        print(date)
+
+        # Read through each line of the file.
+        lineCount = 0
+        filedata = googlecloudstorage2.download_blob_as_string(COMPANIES_BUCKET_NAME, blob.name)
+        f = io.StringIO(filedata)
+
+        reader = csv.reader(f)
+        for line in reader:
+            lineCount = lineCount + 1
+
+            # The first line contains the column headers.
+            if lineCount > 1:
+                c = Company(date, line)
+                companyDictionary[c.Symbol] = c
+                companyCount = companyCount + 1
+
+    return companyDictionary, companyCount
+
+
+def loadPricingFiles():
     # currentWorkingDir = os.getcwd()
     DATA_DIR = '/Users/keithpij/Documents'
     pricingDir = os.path.join(DATA_DIR, 'eod-data', 'pricing-zipped')
@@ -163,14 +169,15 @@ def loaddatafromfiles():
     nyseFiles = glob.glob(nyseDirSearch)
     allFiles = nasdaqFiles + nyseFiles
 
-    pricingDictionary = parsefiles(allFiles)
+    pricingDictionary = parsePricingFiles(allFiles)
 
     return pricingDictionary
 
 
-def parsefiles(files):
+def parsePricingFiles(files):
     pricingDictionary = dict()
     for file in files:
+        print(file)
 
         # Read through each line of the file.
         fhand = gzip.open(file, 'r')
@@ -182,7 +189,7 @@ def parsefiles(files):
             line = line.strip()
             priceList = line.split(',')
 
-            p = Price(priceList)
+            p = models.Price(priceList)
 
             if p.Symbol not in pricingDictionary:
                 dateDictionary = dict()
@@ -196,6 +203,92 @@ def parsefiles(files):
         fhand.close()
 
     return pricingDictionary
+
+
+def loadIndexFiles():
+    # currentWorkingDir = os.getcwd()
+    DATA_DIR = '/Users/keithpij/Documents'
+    pricingDir = os.path.join(DATA_DIR, 'eod-data', 'pricing')
+    indexDirSearch = os.path.join(pricingDir, 'INDEX*.txt')
+
+    # Notice how two lists can be added together.
+    indexFiles = glob.glob(indexDirSearch)
+
+    indexDictionary = parseIndexFiles(indexFiles)
+
+    return indexDictionary
+
+
+def parseIndexFiles(files):
+    indexDictionary = dict()
+    for file in files:
+        #print(file)
+
+        # Read through each line of the file.
+        fhand = open(file)
+        for line in fhand:
+
+            line = line.strip()
+            indexList = line.split(',')
+
+            # Create an instance of the Index class.
+            i = models.Price(indexList)
+
+            # Only interested in Dow Jones and NASDAQ.
+            #if i.Symbol != 'DJI' and i.Symbol != 'NAST':
+            #    continue
+
+            if i.Symbol not in indexDictionary:
+                dateDictionary = dict()
+                dateDictionary[i.Date] = i
+                indexDictionary[i.Symbol] = dateDictionary
+            else:
+                dateDictionary = indexDictionary[i.Symbol]
+                dateDictionary[i.Date] = i
+
+        # Close the file
+        fhand.close()
+
+    return indexDictionary
+
+
+def loadCompanyFiles():
+    # currentWorkingDir = os.getcwd()
+    DATA_DIR = os.path.join('/Users', 'keithpij', 'Documents')
+    #DATA_DIR = '/Users/keithpij/Documents'
+    pricingDir = os.path.join(DATA_DIR, 'eod-data')
+    fileSearch = os.path.join(pricingDir, '*companylist*.csv')
+
+    allFiles = glob.glob(fileSearch)
+
+    companyDictionary = parseCompanyFiles(allFiles)
+
+    return companyDictionary
+
+
+def parseCompanyFiles(files):
+    companyCount = 0
+    companyDictionary = dict()
+    for file in files:
+        a = file.split('.')
+        b = a[0]  # get rid of the file extension
+        c = b.split('-')
+        date = datatools.toDate(c[-3] + c[-2] + c[-1])
+
+        # Read through each line of the file.
+        lineCount = 0
+        fhand = open(file)
+        reader = csv.reader(fhand)
+        for line in reader:
+            lineCount = lineCount + 1
+
+            # The first line contains the column headers.
+            if lineCount > 1:
+                c = company.Company(date, line)
+                companyDictionary[c.Symbol] = c
+                companyCount = companyCount + 1
+
+    return companyDictionary
 
 
 if __name__ == '__main__':
