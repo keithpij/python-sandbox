@@ -5,10 +5,10 @@ import csv
 import sys
 import os
 import datetime
-import DataTools
+import datatools
 import company
-import price
-import index
+import models
+import indexutilities
 
 
 class Portfolio:
@@ -45,8 +45,8 @@ class Holding:
 
     def __init__(self, company, shares, purchasedate):
         self.company = company
-        self.shares = DataTools.toInt(shares)
-        self.purchasedate = DataTools.toDate(purchasedate)
+        self.shares = datatools.toInt(shares)
+        self.purchasedate = datatools.toDate(purchasedate)
 
 
 def printPortfolio(companyDictionary, indexDictionary, pricingDictionary):
@@ -56,8 +56,8 @@ def printPortfolio(companyDictionary, indexDictionary, pricingDictionary):
     # Print the last pricing information for each ticker in the portfolio
     print('Ticker\tDate\t\tOpen\t\tHigh\t\tLow\t\tClose\t\tChange\t\tVolume')
     # Print the indecies.
-    index.PrintLastDateForIndex(indexDictionary, 'DJI')
-    index.PrintLastDateForIndex(indexDictionary, 'NAST')
+    indexutilities.PrintLastDateForIndex(indexDictionary, 'DJI')
+    indexutilities.PrintLastDateForIndex(indexDictionary, 'NAST')
 
     # Load the portfolio file.
     holdings = Portfolio.loadportfolio(companyDictionary)  # Dictionary of Holdings.
@@ -86,15 +86,3 @@ def printLastDateForTicker(pricingDictionary, symbol):
     d = d + '${:7,.2f}'.format(p.Change) + '\t'
     d = d + '{:11,.0f}'.format(int(p.Volume))
     print(d)
-
-
-if __name__ == '__main__':
-
-    # Load company, pricing, and index files.
-    print('Loading Data ...')
-    companyDictionary, count = company.getallcompaniesfromfiles()
-    pricingDictionary = price.LoadFiles()
-    indexDictionary = index.LoadFiles()
-
-    # Print the portfolio.
-    printPortfolio(companyDictionary, indexDictionary, pricingDictionary)
