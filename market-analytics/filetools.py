@@ -34,6 +34,7 @@ def zipTextFiles():
     indexFiles = glob.glob(indexDirSearch)
     allfiles = nasdaqFiles + nyseFiles + indexFiles
 
+    count = 0
     for file in allfiles:
         gzfile = os.path.basename(file) + '.gz'
         gzfile = os.path.join(pricingzippeddir, gzfile)
@@ -41,9 +42,12 @@ def zipTextFiles():
             fhandin = open(file, 'rb')
             fhandout = gzip.open(gzfile, 'wb')
             shutil.copyfileobj(fhandin, fhandout)
+            count += 1
             print(gzfile)
             fhandout.close()
             fhandin.close()
+
+    return count
 
 
 def uploadPricingFiles():

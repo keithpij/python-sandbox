@@ -50,18 +50,18 @@ class Companies:
         else:
             self.Dictionary = companyDictionary
 
-        sectors, industries = self.getSectorsAndIndustries(self.Dictionary)
+        sectors, industries = self.getSectorsAndIndustries()
         self.Sectors = sectors
         self.Industries = industries
 
 
-    def getSectorsAndIndustries(self, companyDictionary):
+    def getSectorsAndIndustries(self):
         # Create the sector and industry dictionaries.
         sectors = dict()
         industries = dict()
 
-        for symbol in companyDictionary.keys():
-            c = companyDictionary[symbol]
+        for symbol in self.Dictionary.keys():
+            c = self.Dictionary[symbol]
 
             # Sector data
             if c.Sector not in sectors:
