@@ -18,6 +18,23 @@ def toDateDash(s):
         return r
 
 
+# Expected format of passed string:  yyyy-mm-dd
+def to_date_slash(string_date):
+    string_date = string_date.strip()
+
+    # Return None if no value is present.
+    if len(string_date) == 0:
+        return None
+    else:
+        # print('This is the string passed to toDate: ' + s)
+        pieces = string_date.split('/')
+        month = int(pieces[0])
+        day = int(pieces[1])
+        year = int(pieces[2])
+        return_date = datetime.date(year, month, day)
+        return return_date
+
+
 # Expected format of passed string:  yyyymmdd
 def toDate(s):
     d = s.strip()
