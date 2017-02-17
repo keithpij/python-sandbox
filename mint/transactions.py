@@ -1,9 +1,11 @@
 # Transaction class
 import sys
 import csv
-import datatools
+import re
 import datetime
-
+import calendar
+import datatools
+import charting
 
 class Transaction:
 
@@ -73,24 +75,43 @@ def load_transaction_file(file):
     return transactions
 
 
-def get_categories(start_date, end_date, transactions):
+def get_categories(transactions):
     categories = dict()
     for transaction in transactions:
         # Do not add any 'Hide' categories.
         if transaction.category.lower()[0:3] == 'hide':
             continue
-        if (transaction.transaction_date >= start_date) and (transaction.transaction_date <= end_date):
-            if transaction.category in categories:
-                categories[transaction.category].append(transaction)
-            else:
-                categories[transaction.category] = []
-                categories[transaction.category].append(transaction)
+        elif transaction.category in categories:
+            categories[transaction.category].append(transaction)
+        else:
+            categories[transaction.category] = []
+            categories[transaction.category].append(transaction)
     return categories
+
+
+def get_category(search_name):
+    categories = get_categories(TRANSACTIONS)
+    for category_name in categories:
+        if re.search(search_name.lower(), category_name.lower()):
+        return categories[category_name]
+    else:
+        return None
 
 
 def print_categories(categories):
     for category in categories:
         print_transactions(category, categories[category])
+
+
+def get_category_totals(categories):
+    # Create a dictionary of totals for each category.
+    category_totals = dict()
+    for category_name in categories.keys():
+        total = 0
+        for transaction in categories[category_name]:
+            total += transaction.amount
+        category_totals[category_name] = total
+    return category_totals
 
 
 def print_category_totals(categories):
@@ -122,16 +143,29 @@ def print_transactions(title, transactions):
     print('\n\n' + title + '\n')
     transactions.sort(key=lambda x: x.transaction_date)
     for transaction in transactions:
-        print(pad(transaction.transaction_date, 15) + pad(transaction.description, 30) + pad('${:9,.2f}'.format(transaction.amount),20))
+        print(pad(transaction.transaction_date, 15) + pad(transaction.description, 40) + pad(transaction.category, 20) + pad('${:9,.2f}'.format(transaction.amount),20))
         total += transaction.amount
-    print('Total\t' + '${:9,.2f}'.format(total) + '\n')
 
 
 def print_transaction_totals(title, transactions):
     total = 0
     for transaction in transactions:
-        total += transaction.amount
+        if transaction.category.lower() != 'credit card payment':
+            total += transaction.amount
     print(pad(title, 20) + '\t' + '${:9,.2f}'.format(total))
+
+
+def print_category_comparison(previous_month_totals, current_month_totals):
+    print(pad('Category', 30) + pad('Previous Month', 20) + pad('Current Month', 20) + pad('Difference', 20))
+
+    for category_name in sorted(previous_month_totals, key=previous_month_totals.__getitem__, reverse=True):
+        previous = previous_month_totals[category_name]
+        if category_name in current_month_totals:
+            current = current_month_totals[category_name]
+        else:
+            current = 0
+        diff = previous - current
+        print(pad(category_name, 30) + pad('${:9,.2f}'.format(previous), 20) + pad('${:9,.2f}'.format(current), 20) + pad('${:9,.2f}'.format(diff), 20))
 
 
 def pad(value, width):
@@ -151,23 +185,125 @@ def pad(value, width):
     return display
 
 
+def get_user_requests():
+    '''
+    User request loop. Reads the next command from the user and then calls
+    the appropriate function.
+    '''
+    global START_DATE
+    global END_DATE
+    global TRANSACTIONS
+
+    # User request loop
+    while True:
+        prompt = str(START_DATE) + ' - ' + str(END_DATE)
+        command = input(prompt + ' --> ')
+
+        if command[0:2] == 'dr':
+            params = command[2:].strip()
+            params_list = params.split(' ')
+            start_date = params_list[0]
+            end_date = params_list[1]
+            START_DATE = datatools.to_date(start_date)
+            END_DATE = datatools.to_date(end_date)
+            continue
+
+        if command[0:1] == 'c':
+            params = command[1:].strip()
+            params_list = params.split(' ')
+            category = params_list[0]
+            if len(category) == 0:
+                debits = get_transactions_by_type(START_DATE, END_DATE, TRANSACTIONS, 'debit')
+                categories = get_categories(debits)
+                print_category_totals(categories)
+            else:
+                category_transactions = get_category(category)
+                print_transactions(category, category_transactions)
+            continue
+
+        if command == 'income':
+            credits = get_transactions_by_type(START_DATE, END_DATE, TRANSACTIONS, 'credit')
+            print_transactions('Credits', credits)
+            print_transaction_totals('Credits', credits)
+            continue
+
+        if command == 'spending':
+            debits = get_transactions_by_type(START_DATE, END_DATE, TRANSACTIONS, 'debit')
+            print_transactions('Debits', debits)
+            print_transaction_totals('Debits', debits)
+            continue
+
+        if command == 'categories':
+            debits = get_transactions_by_type(START_DATE, END_DATE, TRANSACTIONS, 'debit')
+            categories = get_categories(debits)
+            print_category_totals(categories)
+            continue
+
+        if command == 'compare':
+            now = datetime.datetime.now()
+            year = now.year
+            month = now.month
+            # returns a touple which is the day of the week of the first day of the month and
+            # the number of days in the month.
+            last_day = calendar.monthrange(year, month)[1]
+            start_date = datetime.date(year, month, 1)
+            end_date = datetime.date(year, month, last_day)
+            debits = get_transactions_by_type(start_date, end_date, TRANSACTIONS, 'debit')
+            current_month = get_categories(debits)
+            current_month_totals = get_category_totals(current_month)
+            #print(str(start_date) + ' ' + str(end_date))
+            #print_category_totals(current_month)
+
+            if month == 1:
+                year -= 1
+                month = 12
+            else:
+                month -=1
+
+            last_day = calendar.monthrange(year, month)[1]
+            start_date = datetime.date(year, month, 1)
+            end_date = datetime.date(year, month, last_day)
+            debits = get_transactions_by_type(start_date, end_date, TRANSACTIONS, 'debit')
+            previous_month = get_categories(debits)
+            previous_month_totals = get_category_totals(previous_month)
+            #print(str(start_date) + ' ' + str(end_date))
+            #print_category_totals(previous_month)
+            print_category_comparison(previous_month_totals, current_month_totals)
+            continue
+
+        if command == 'help':
+            param = command[4:].strip()
+            if len(param) > 0:
+                print_command_help(param)
+            else:
+                print_menu()
+            continue
+
+        if command == 'lf':
+            print('Reading transaction file ...')
+            transactions = load_transaction_file('transactions.csv')
+            continue
+
+        if command == 'pie':
+            debits = get_transactions_by_type(START_DATE, END_DATE, TRANSACTIONS, 'debit')
+            categories = get_categories(START_DATE, END_DATE, debits)
+            charting.category_pie_chart(categories)
+            continue
+
+        if command == 'quit' or command == 'q':
+            break
+
+        print('*** Unrecognized command ***')
+
+
 if __name__ == '__main__':
     # Main execution
     # Passed arguments
     print(sys.argv)
 
-    transactions = load_transaction_file('transactions.csv')
-    start_date = datetime.date(2017, 1, 1)
-    end_date = datetime.date(2017, 1, 31)
+    TRANSACTIONS = load_transaction_file('transactions.csv')
+    START_DATE = datetime.date(2017, 1, 1)
+    END_DATE = datetime.date(2017, 1, 31)
 
-    credits = get_transactions_by_type(start_date, end_date, transactions, 'credit')
-    debits = get_transactions_by_type(start_date, end_date, transactions, 'debit')
-    categories = get_categories(start_date, end_date, debits)
-
-    print('\n')
-    print(str(start_date) + ' - ' + str(end_date))
-    print_transaction_totals('Credits', credits)
-    print_transaction_totals('Debits', debits)
-    print('\n')
-    print_category_totals(categories)
-    print_transactions('Credits', debits)
+    # This function is a user request loop.
+    get_user_requests()

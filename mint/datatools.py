@@ -18,7 +18,7 @@ def toDateDash(s):
         return r
 
 
-# Expected format of passed string:  yyyy-mm-dd
+# Expected format of passed string:  mm/dd/yyyy
 def to_date_slash(string_date):
     string_date = string_date.strip()
 
@@ -36,7 +36,7 @@ def to_date_slash(string_date):
 
 
 # Expected format of passed string:  yyyymmdd
-def toDate(s):
+def to_date(s):
     d = s.strip()
 
     # Return None if no value is present.
