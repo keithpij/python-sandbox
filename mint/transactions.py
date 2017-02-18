@@ -89,13 +89,11 @@ def get_categories(transactions):
     return categories
 
 
-def get_category(search_name):
-    categories = get_categories(TRANSACTIONS)
+def get_category(search_name, debits):
+    categories = get_categories(debits)
     for category_name in categories:
         if re.search(search_name.lower(), category_name.lower()):
-        return categories[category_name]
-    else:
-        return None
+            return categories[category_name]
 
 
 def print_categories(categories):
@@ -211,14 +209,15 @@ def get_user_requests():
         if command[0:1] == 'c':
             params = command[1:].strip()
             params_list = params.split(' ')
-            category = params_list[0]
-            if len(category) == 0:
-                debits = get_transactions_by_type(START_DATE, END_DATE, TRANSACTIONS, 'debit')
+            search_name = params_list[0]
+            debits = get_transactions_by_type(START_DATE, END_DATE, TRANSACTIONS, 'debit')
+
+            if len(search_name) == 0:
                 categories = get_categories(debits)
                 print_category_totals(categories)
             else:
-                category_transactions = get_category(category)
-                print_transactions(category, category_transactions)
+                category_transactions = get_category(search_name, debits)
+                print_transactions(search_name, category_transactions)
             continue
 
         if command == 'income':
@@ -233,13 +232,7 @@ def get_user_requests():
             print_transaction_totals('Debits', debits)
             continue
 
-        if command == 'categories':
-            debits = get_transactions_by_type(START_DATE, END_DATE, TRANSACTIONS, 'debit')
-            categories = get_categories(debits)
-            print_category_totals(categories)
-            continue
-
-        if command == 'compare':
+        if command == 'cp':
             now = datetime.datetime.now()
             year = now.year
             month = now.month
@@ -251,8 +244,6 @@ def get_user_requests():
             debits = get_transactions_by_type(start_date, end_date, TRANSACTIONS, 'debit')
             current_month = get_categories(debits)
             current_month_totals = get_category_totals(current_month)
-            #print(str(start_date) + ' ' + str(end_date))
-            #print_category_totals(current_month)
 
             if month == 1:
                 year -= 1
@@ -266,8 +257,6 @@ def get_user_requests():
             debits = get_transactions_by_type(start_date, end_date, TRANSACTIONS, 'debit')
             previous_month = get_categories(debits)
             previous_month_totals = get_category_totals(previous_month)
-            #print(str(start_date) + ' ' + str(end_date))
-            #print_category_totals(previous_month)
             print_category_comparison(previous_month_totals, current_month_totals)
             continue
 
@@ -302,8 +291,18 @@ if __name__ == '__main__':
     print(sys.argv)
 
     TRANSACTIONS = load_transaction_file('transactions.csv')
-    START_DATE = datetime.date(2017, 1, 1)
-    END_DATE = datetime.date(2017, 1, 31)
+
+    # Get the current year and month.
+    now = datetime.datetime.now()
+    year = now.year
+    month = now.month
+
+    # Calculate the last day of the month.
+    # calendar.monthrange returns a touple which is the day of the week of the first day of the month and
+    # the number of days in the month.
+    last_day = calendar.monthrange(year, month)[1]
+    START_DATE = datetime.date(year, month, 1)
+    END_DATE = datetime.date(year, month, last_day)
 
     # This function is a user request loop.
     get_user_requests()
