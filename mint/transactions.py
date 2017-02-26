@@ -6,6 +6,8 @@ import datetime
 import calendar
 import datatools
 import charting
+import printtools
+
 
 class Transaction:
 
@@ -72,6 +74,7 @@ def load_transaction_file(file):
             else:
                 transactions.append(transaction)
 
+    fhand.close()
     return transactions
 
 
@@ -89,16 +92,11 @@ def get_categories(transactions):
     return categories
 
 
-def get_category(search_name, debits):
+def get_category_by_name(search_name, debits):
     categories = get_categories(debits)
     for category_name in categories:
         if re.search(search_name.lower(), category_name.lower()):
             return categories[category_name]
-
-
-def print_categories(categories):
-    for category in categories:
-        print_transactions(category, categories[category])
 
 
 def get_category_totals(categories):
@@ -112,21 +110,6 @@ def get_category_totals(categories):
     return category_totals
 
 
-def print_category_totals(categories):
-    # Create a dictionary of totals for each category.
-    category_totals = dict()
-    for category_name in categories.keys():
-        total = 0
-        for transaction in categories[category_name]:
-            total += transaction.amount
-        category_totals[category_name] = total
-
-    # Loop through and print the totals for each category.
-    for category_name in sorted(category_totals, key=category_totals.__getitem__, reverse=True):  #sorted(d, key=d.__getitem__)
-        category_total = category_totals[category_name]
-        print(pad(category_name, 20) + '\t' + '${:9,.2f}'.format(category_total))
-
-
 def get_transactions_by_type(start_date, end_date, transactions, type):
     debits = []
     for transaction in transactions:
@@ -134,53 +117,6 @@ def get_transactions_by_type(start_date, end_date, transactions, type):
             if transaction.transaction_type.lower() == type.lower():
                 debits.append(transaction)
     return debits
-
-
-def print_transactions(title, transactions):
-    total = 0
-    print('\n\n' + title + '\n')
-    transactions.sort(key=lambda x: x.transaction_date)
-    for transaction in transactions:
-        print(pad(transaction.transaction_date, 15) + pad(transaction.description, 40) + pad(transaction.category, 20) + pad('${:9,.2f}'.format(transaction.amount),20))
-        total += transaction.amount
-
-
-def print_transaction_totals(title, transactions):
-    total = 0
-    for transaction in transactions:
-        if transaction.category.lower() != 'credit card payment':
-            total += transaction.amount
-    print(pad(title, 20) + '\t' + '${:9,.2f}'.format(total))
-
-
-def print_category_comparison(previous_month_totals, current_month_totals):
-    print(pad('Category', 30) + pad('Previous Month', 20) + pad('Current Month', 20) + pad('Difference', 20))
-
-    for category_name in sorted(previous_month_totals, key=previous_month_totals.__getitem__, reverse=True):
-        previous = previous_month_totals[category_name]
-        if category_name in current_month_totals:
-            current = current_month_totals[category_name]
-        else:
-            current = 0
-        diff = previous - current
-        print(pad(category_name, 30) + pad('${:9,.2f}'.format(previous), 20) + pad('${:9,.2f}'.format(current), 20) + pad('${:9,.2f}'.format(diff), 20))
-
-
-def pad(value, width):
-    '''
-    Turns value into a string and then pads the new string value with spaces
-    to produce a string of length width.
-    '''
-    display = str(value)
-    length = len(display)
-
-    if length >= width:
-        return display[0:width]
-
-    delta = width - length
-    for _ in range(delta):
-        display = display + ' '
-    return display
 
 
 def get_user_requests():
@@ -214,22 +150,22 @@ def get_user_requests():
 
             if len(search_name) == 0:
                 categories = get_categories(debits)
-                print_category_totals(categories)
+                printtools.print_category_totals(categories)
             else:
-                category_transactions = get_category(search_name, debits)
-                print_transactions(search_name, category_transactions)
+                category_transactions = get_category_by_name(search_name, debits)
+                printtools.print_transactions(search_name, category_transactions)
             continue
 
         if command == 'income':
             credits = get_transactions_by_type(START_DATE, END_DATE, TRANSACTIONS, 'credit')
-            print_transactions('Credits', credits)
-            print_transaction_totals('Credits', credits)
+            printtools.print_transactions('Credits', credits)
+            printtools.print_transaction_totals('Credits', credits)
             continue
 
         if command == 'spending':
             debits = get_transactions_by_type(START_DATE, END_DATE, TRANSACTIONS, 'debit')
-            print_transactions('Debits', debits)
-            print_transaction_totals('Debits', debits)
+            printtools.print_transactions('Debits', debits)
+            printtools.print_transaction_totals('Debits', debits)
             continue
 
         if command == 'cp':
@@ -245,6 +181,7 @@ def get_user_requests():
             current_month = get_categories(debits)
             current_month_totals = get_category_totals(current_month)
 
+            # Get previous month.
             if month == 1:
                 year -= 1
                 month = 12
@@ -257,7 +194,7 @@ def get_user_requests():
             debits = get_transactions_by_type(start_date, end_date, TRANSACTIONS, 'debit')
             previous_month = get_categories(debits)
             previous_month_totals = get_category_totals(previous_month)
-            print_category_comparison(previous_month_totals, current_month_totals)
+            printtools.print_category_comparison(previous_month_totals, current_month_totals)
             continue
 
         if command == 'help':
@@ -270,7 +207,7 @@ def get_user_requests():
 
         if command == 'lf':
             print('Reading transaction file ...')
-            transactions = load_transaction_file('transactions.csv')
+            TRANSACTIONS = load_transaction_file('transactions.csv')
             continue
 
         if command == 'pie':
