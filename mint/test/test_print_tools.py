@@ -5,11 +5,20 @@ import transactions
 import printtools
 
 
+DATA_FILE = 'test_transactions.csv'
+
 class TestPrintTools(unittest.TestCase):
 
 
+    def setUp(self):
+        self.transactions = transactions.load_transaction_file(DATA_FILE)
+
+
+    def tearDown(self):
+        self.transactions = None
+
+
     def test_print_income(self):
-        all_transactions = transactions.load_transaction_file('transactions.csv')
 
         # Get the current year and month.
         now = datetime.datetime.now()
@@ -29,14 +38,13 @@ class TestPrintTools(unittest.TestCase):
         last_day = calendar.monthrange(year, month)[1]
         start_date = datetime.date(year, month, 1)
         end_date = datetime.date(year, month, last_day)
-        credits = transactions.get_transactions_by_type(start_date, end_date, all_transactions, 'credit')
+        credits = transactions.get_transactions_by_type(start_date, end_date, self.transactions, 'credit')
         printtools.print_transactions('Credits', credits)
         printtools.print_transaction_totals('Credits', credits)
         self.assertTrue(credits != None)
 
 
     def test_print_credits(self):
-        all_transactions = transactions.load_transaction_file('transactions.csv')
 
         # Get the current year and month.
         now = datetime.datetime.now()
@@ -56,7 +64,7 @@ class TestPrintTools(unittest.TestCase):
         last_day = calendar.monthrange(year, month)[1]
         start_date = datetime.date(year, month, 1)
         end_date = datetime.date(year, month, last_day)
-        debits = transactions.get_transactions_by_type(start_date, end_date, all_transactions, 'debit')
+        debits = transactions.get_transactions_by_type(start_date, end_date, self.transactions, 'debit')
         printtools.print_transactions('Debits', debits)
         printtools.print_transaction_totals('Debits', debits)
         self.assertTrue(debits != None)

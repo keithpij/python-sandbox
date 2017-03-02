@@ -1,0 +1,12 @@
+# .coveragerc to control coverage.py
+[run]
+branch = True
+#source = /Users/keithpij/Documents/Python-Coverage-Demos/
+parallel = False
+omit = tests.py
+
+[report]
+show_missing = True
+
+[html]
+directory = qualityreport

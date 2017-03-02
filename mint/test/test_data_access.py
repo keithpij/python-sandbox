@@ -12,16 +12,24 @@ TestDataAccess inherits the following:
 - assertRaises
 '''
 
+DATA_FILE = 'test_transactions.csv'
+
 class TestDataAccess(unittest.TestCase):
 
 
+    def setUp(self):
+        self.transactions = transactions.load_transaction_file(DATA_FILE)
+
+
+    def tearDown(self):
+        self.transactions = None
+
+
     def test_load_transaction_file(self):
-        all_transactions = transactions.load_transaction_file('transactions.csv')
-        self.assertTrue(all_transactions != None)
+        self.assertTrue(self.transactions != None)
 
 
     def test_get_income(self):
-        all_transactions = transactions.load_transaction_file('transactions.csv')
 
         # Get the current year and month.
         now = datetime.datetime.now()
@@ -41,12 +49,11 @@ class TestDataAccess(unittest.TestCase):
         last_day = calendar.monthrange(year, month)[1]
         start_date = datetime.date(year, month, 1)
         end_date = datetime.date(year, month, last_day)
-        credits = transactions.get_transactions_by_type(start_date, end_date, all_transactions, 'credit')
+        credits = transactions.get_transactions_by_type(start_date, end_date, self.transactions, 'credit')
         self.assertTrue(credits != None)
 
 
     def test_get_spending(self):
-        all_transactions = transactions.load_transaction_file('transactions.csv')
 
         # Get the current year and month.
         now = datetime.datetime.now()
@@ -66,7 +73,7 @@ class TestDataAccess(unittest.TestCase):
         last_day = calendar.monthrange(year, month)[1]
         start_date = datetime.date(year, month, 1)
         end_date = datetime.date(year, month, last_day)
-        debits = transactions.get_transactions_by_type(start_date, end_date, all_transactions, 'debit')
+        debits = transactions.get_transactions_by_type(start_date, end_date, self.transactions, 'debit')
         self.assertTrue(debits != None)
 
 

@@ -1,6 +1,5 @@
 # Security files #
 ###################
-mint/transactions.csv
 
 # Compiled source #
 ###################
@@ -30,7 +29,8 @@ mint/transactions.csv
 *.log
 *.sql
 *.sqlite
-market-analytics/market.sqlite3
+*.sqlite3
+*.csv
 
 # OS generated files #
 ######################
