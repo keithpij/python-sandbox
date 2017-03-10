@@ -92,6 +92,17 @@ def get_categories(transactions):
     return categories
 
 
+def get_accounts(transactions):
+    accounts = dict()
+    for transaction in transactions:
+        # Do not add any 'Hide' categories.
+        if transaction.account_name in accounts:
+            accounts[transaction.account_name] += transaction.amount
+        else:
+            accounts[transaction.account_name] = transaction.amount
+    return accounts
+
+
 def get_category_by_name(search_name, debits):
     categories = get_categories(debits)
     for category_name in categories:
@@ -132,6 +143,12 @@ def get_user_requests():
     while True:
         prompt = str(START_DATE) + ' - ' + str(END_DATE)
         command = input(prompt + ' --> ')
+
+
+        if command[0:2] == 'a':
+            accounts = get_accounts(TRANSACTIONS)
+            printtools.print_accounts(accounts)
+            continue
 
         if command[0:2] == 'dr':
             params = command[2:].strip()

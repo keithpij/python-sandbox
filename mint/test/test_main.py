@@ -4,8 +4,8 @@ if __name__ == '__main__':
     import os
     import sys
     import inspect
+    import pytest
     import coverage
-    import unittest
 
     # sys.path needs to be updated before any of the tests are loaded.
     currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
@@ -23,13 +23,7 @@ if __name__ == '__main__':
     import test_data_access
     import test_print_tools
 
-    # Setup the unit tests and suites.
-    data_access_suite = unittest.TestLoader().loadTestsFromTestCase(test_data_access.TestDataAccess)
-    print_suite = unittest.TestLoader().loadTestsFromTestCase(test_print_tools.TestPrintTools)
-    all_test = unittest.TestSuite([data_access_suite, print_suite])
-
-    unittest.TextTestRunner(stream=None, descriptions=True, verbosity=2, failfast=False, buffer=True,
-        resultclass=None, warnings=None, tb_locals=False).run(all_test)
+    pytest.main(['-x'])
 
     # End coverage tracking and save the results.
     cov.stop()

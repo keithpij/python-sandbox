@@ -3,12 +3,31 @@ Tools for printing to the console.
 '''
 
 
+def print_accounts(accounts):
+    print('\n\nAccounts\n')
+    for account_name in accounts:
+        print(account_name)
+    print('\n')
+
+
 def print_transactions(title, transactions):
     total = 0
     print('\n\n' + title + '\n')
+
+    # Column headings
+    print(pad('Date', 15) +
+        pad('Description', 35) +
+        pad('Category', 25) +
+        pad('Account', 30) +
+        pad('Amount', 20))
+
     transactions.sort(key=lambda x: x.transaction_date)
     for transaction in transactions:
-        print(pad(transaction.transaction_date, 15) + pad(transaction.description, 40) + pad(transaction.category, 20) + pad('${:9,.2f}'.format(transaction.amount),20))
+        print(pad(transaction.transaction_date, 15) +
+            pad(transaction.description, 35) +
+            pad(transaction.category, 25) +
+            pad(transaction.account_name, 30) +
+            pad('${:9,.2f}'.format(transaction.amount), 20))
         total += transaction.amount
 
 
