@@ -1,9 +1,10 @@
+'''
+Perceptron classifier
+'''
 import numpy as np
 
 class Perceptron(object):
     '''
-    Perceptron Classifier
-
     Parameters
     eta : float - learning rate (between 0.0 and 1.0)
     iterations : int - the number of passes over the training dataset.

@@ -1,5 +1,5 @@
 '''
-Tools for printing to the console.
+Tools for printing reports to the console.
 '''
 
 
@@ -16,18 +16,18 @@ def print_transactions(title, transactions):
 
     # Column headings
     print(pad('Date', 15) +
-        pad('Description', 35) +
-        pad('Category', 25) +
-        pad('Account', 30) +
-        pad('Amount', 20))
+          pad('Description', 35) +
+          pad('Category', 25) +
+          pad('Account', 30) +
+          pad('Amount', 20))
 
     transactions.sort(key=lambda x: x.transaction_date)
     for transaction in transactions:
         print(pad(transaction.transaction_date, 15) +
-            pad(transaction.description, 35) +
-            pad(transaction.category, 25) +
-            pad(transaction.account_name, 30) +
-            pad('${:9,.2f}'.format(transaction.amount), 20))
+              pad(transaction.description, 35) +
+              pad(transaction.category, 25) +
+              pad(transaction.account_name, 30) +
+              pad('${:9,.2f}'.format(transaction.amount), 20))
         total += transaction.amount
 
 

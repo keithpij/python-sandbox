@@ -4,9 +4,9 @@ import csv
 import re
 import datetime
 import calendar
-import datatools
+import convert
 import charting
-import printtools
+import reports
 
 
 class Transaction:
@@ -28,7 +28,7 @@ class Transaction:
     def __init__(self, transaction_details):
 
         d = Transaction.index_dict
-        self.transaction_date = datatools.to_date_slash(transaction_details[d[Transaction.DATE_HEADER]])
+        self.transaction_date = convert.to_date(transaction_details[d[Transaction.DATE_HEADER]])
         self.description = transaction_details[d[Transaction.DESCRIPTION_HEADER]]
         self.original_description = transaction_details[d[Transaction.ORIGINAL_DESCRIPTION_HEADER]]
         self.amount = float(transaction_details[d[Transaction.AMOUNT_HEADER]])
@@ -70,7 +70,8 @@ def load_transaction_file(file):
             transaction = Transaction(line)
             # Do not add any transactions in the a 'Hide*' category.
             if transaction.category.lower()[0:4] == 'hide':
-                print('Hidden transaction: ' + str(transaction.transaction_date) + ' ' + transaction.description)
+                print('Hidden transaction: ' + str(transaction.transaction_date) +
+                      ' ' + transaction.description)
             else:
                 transactions.append(transaction)
 
@@ -111,7 +112,7 @@ def get_category_by_name(search_name, debits):
 
 
 def get_category_totals(categories):
-    # Create a dictionary of totals for each category.
+    ''' Create a dictionary of totals for each category. '''
     category_totals = dict()
     for category_name in categories.keys():
         total = 0
@@ -147,7 +148,7 @@ def get_user_requests():
 
         if command[0:2] == 'a':
             accounts = get_accounts(TRANSACTIONS)
-            printtools.print_accounts(accounts)
+            reports.print_accounts(accounts)
             continue
 
         if command[0:2] == 'dr':
@@ -155,34 +156,34 @@ def get_user_requests():
             params_list = params.split(' ')
             start_date = params_list[0]
             end_date = params_list[1]
-            START_DATE = datatools.to_date(start_date)
-            END_DATE = datatools.to_date(end_date)
+            START_DATE = convert.to_date(start_date)
+            END_DATE = convert.to_date(end_date)
             continue
 
-        if command[0:1] == 'c':
-            params = command[1:].strip()
+        if command[0:3] == 'cat':
+            params = command[3:].strip()
             params_list = params.split(' ')
             search_name = params_list[0]
             debits = get_transactions_by_type(START_DATE, END_DATE, TRANSACTIONS, 'debit')
 
             if len(search_name) == 0:
                 categories = get_categories(debits)
-                printtools.print_category_totals(categories)
+                reports.print_category_totals(categories)
             else:
                 category_transactions = get_category_by_name(search_name, debits)
-                printtools.print_transactions(search_name, category_transactions)
+                reports.print_transactions(search_name, category_transactions)
             continue
 
         if command == 'income':
             credits = get_transactions_by_type(START_DATE, END_DATE, TRANSACTIONS, 'credit')
-            printtools.print_transactions('Credits', credits)
-            printtools.print_transaction_totals('Credits', credits)
+            reports.print_transactions('Credits', credits)
+            reports.print_transaction_totals('Credits', credits)
             continue
 
         if command == 'spending':
             debits = get_transactions_by_type(START_DATE, END_DATE, TRANSACTIONS, 'debit')
-            printtools.print_transactions('Debits', debits)
-            printtools.print_transaction_totals('Debits', debits)
+            reports.print_transactions('Debits', debits)
+            reports.print_transaction_totals('Debits', debits)
             continue
 
         if command == 'cp':
@@ -203,7 +204,7 @@ def get_user_requests():
                 year -= 1
                 month = 12
             else:
-                month -=1
+                month -= 1
 
             last_day = calendar.monthrange(year, month)[1]
             start_date = datetime.date(year, month, 1)
@@ -211,7 +212,7 @@ def get_user_requests():
             debits = get_transactions_by_type(start_date, end_date, TRANSACTIONS, 'debit')
             previous_month = get_categories(debits)
             previous_month_totals = get_category_totals(previous_month)
-            printtools.print_category_comparison(previous_month_totals, current_month_totals)
+            reports.print_category_comparison(previous_month_totals, current_month_totals)
             continue
 
         if command == 'help':
@@ -229,7 +230,7 @@ def get_user_requests():
 
         if command == 'pie':
             debits = get_transactions_by_type(START_DATE, END_DATE, TRANSACTIONS, 'debit')
-            categories = get_categories(START_DATE, END_DATE, debits)
+            categories = get_categories(debits)
             charting.category_pie_chart(categories)
             continue
 
@@ -252,8 +253,8 @@ if __name__ == '__main__':
     month = now.month
 
     # Calculate the last day of the month.
-    # calendar.monthrange returns a touple which is the day of the week of the first day of the month and
-    # the number of days in the month.
+    # calendar.monthrange returns a touple which is the day of the week of the first day
+    # of the month and the number of days in the month.
     last_day = calendar.monthrange(year, month)[1]
     START_DATE = datetime.date(year, month, 1)
     END_DATE = datetime.date(year, month, last_day)

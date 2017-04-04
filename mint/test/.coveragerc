@@ -3,7 +3,7 @@
 branch = True
 #source = /Users/keithpij/Documents/Python-Coverage-Demos/
 parallel = False
-omit = tests.py
+omit = test_*, __init__.py
 
 [report]
 show_missing = True
