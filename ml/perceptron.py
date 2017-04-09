@@ -30,7 +30,7 @@ class Perceptron(object):
         Training vectors where n_samples is the number of samples and
         n_features is the number of features.
 
-        y : array-like, share = [n_samples]
+        y : array-like, shape = [n_samples]
         Target values
 
         returns
@@ -48,6 +48,7 @@ class Perceptron(object):
                 self.weights[0] += update
                 errors += int(update != 0.0)
             self.errors.append(errors)
+
         return self
 
 
@@ -59,3 +60,4 @@ class Perceptron(object):
     def predict(self, x):
         # Return class label after unit step.
         return np.where(self.net_input(x) >= 0.0, 1, -1)
+

@@ -1,9 +1,9 @@
 # .coveragerc to control coverage.py
 [run]
 branch = True
-#source = /Users/keithpij/Documents/Python-Coverage-Demos/
+#source = /Users/keithpij/Documents/python-sandbox/mint
 parallel = False
-omit = test_*, __init__.py
+omit = test_*, fixtures.py, __init__.py
 
 [report]
 show_missing = True

@@ -4,7 +4,13 @@ import pytest
 import dataaccess
 import reports
 import settings
+from fixtures import transactions, previous_month, current_month
 
+
+'''
+@pytest.mark.usefixtures('transactions')
+@pytest.mark.usefixtures('previous_month')
+'''
 
 def test_print_income(transactions, previous_month):
     ''' Test print_income function. '''

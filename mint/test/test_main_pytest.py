@@ -12,10 +12,13 @@ if __name__ == '__main__':
     parentdir = os.path.dirname(currentdir)
     sys.path.insert(0, parentdir)
 
-    # Start code coverage tracking.
-    # Code coverage tracking needs to start before the first import modules that contain unit tests.
-    # If code coverage is started after unit test have been imported then all the code that runs
-    # as a result of the import statements will be missed.
+    '''
+    Start code coverage tracking.
+    Code coverage tracking needs to start before the first import modules that contain unit tests.
+    If code coverage is started after unit test have been imported then all the code that runs
+    as a result of the import statements will be missed.
+    '''
+
     cov = coverage.Coverage()
     cov.erase()
     cov.start()
