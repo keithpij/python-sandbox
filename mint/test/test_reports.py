@@ -72,5 +72,5 @@ def test_print_category_comparison(transactions, previous_month, current_month):
     previous_month_totals = dataaccess.get_category_totals(previous_month)
 
     reports.print_category_comparison(previous_month_totals, current_month_totals)
-    
+
     
