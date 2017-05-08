@@ -3,7 +3,7 @@
 /mint/test/qualityreport/*
 /mint/test/.cache/*
 /mint/.cache/*
-
+mint/test/.coverage
 
 # Compiled source #
 ###################

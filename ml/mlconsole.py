@@ -12,8 +12,9 @@ def get_raw_data():
     '''
     Get the iris data frame from the UCI Machine Learning Repository.
     '''
-    url = 'https://archive.ics.uci.edu/ml/machine-learning-databases/iris/iris.data'
-    raw_data_frame = pd.read_csv(url, header=None)
+    #url = 'https://archive.ics.uci.edu/ml/machine-learning-databases/iris/iris.data'
+    file = 'iris-dataset.csv'
+    raw_data_frame = pd.read_csv(file, header=None)
     return raw_data_frame
 
 
@@ -28,7 +29,7 @@ def data_preprocessing(raw_data_frame):
 
     # Convert 'Iris-setosa' to -1.
     # Convert 'Iris-virginica' to 1.
-    class_labels = np.where(class_labels == 'Iris-setosa', -1, 1)
+    class_labels = np.where(class_labels == 'I. setosa', -1, 1)
 
     # Get the feature columns for sepal length and petal length and
     # create a feature matrix.
@@ -99,12 +100,23 @@ def plot_results(feature_matrix, class_labels, classifier, resolution=0.02):
 
 if __name__ == '__main__':
     RAW_DATA_FRAME = get_raw_data()
-    print(RAW_DATA_FRAME.tail())
+    #print(RAW_DATA_FRAME.tail())
 
     FEATURE_MATRIX, CLASS_LABELS = data_preprocessing(RAW_DATA_FRAME)
-    print(CLASS_LABELS)
-    print(FEATURE_MATRIX)
+    #print(CLASS_LABELS)
+    #print(FEATURE_MATRIX)
     CLASSIFIER = learn(FEATURE_MATRIX, CLASS_LABELS)
 
     #plot_feature_matrix(FEATURE_MATRIX)
-    plot_results(FEATURE_MATRIX, CLASS_LABELS, CLASSIFIER, 0.02)
+    plot_epochs(CLASSIFIER)
+    #plot_results(FEATURE_MATRIX, CLASS_LABELS, CLASSIFIER, 0.02)
+
+    #for sample, target in zip(FEATURE_MATRIX, CLASS_LABELS):
+    #    print(sample)
+    #print(CLASSIFIER.weights)
+
+    #unknown_vector = np.linalg.lstsq(FEATURE_MATRIX, CLASS_LABELS)
+    #print(unknown_vector)
+
+    #calculated_class_labels = np.dot(FEATURE_MATRIX, CLASSIFIER.weights[1:])
+    #print(calculated_class_labels)

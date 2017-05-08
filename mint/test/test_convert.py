@@ -2,6 +2,7 @@ import convert
 import datetime
 import pytest
 
+# TODO: Create and test custom errors for each conversion function.
 
 def test_to_date_1():
     test_value = '3/15/2017'
