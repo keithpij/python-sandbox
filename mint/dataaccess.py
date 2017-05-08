@@ -97,6 +97,7 @@ def get_categories(transactions):
         else:
             categories[transaction.category] = []
             categories[transaction.category].append(transaction)
+
     return categories
 
 

@@ -8,7 +8,7 @@ import settings
 import dataaccess
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope='session')
 def transactions():
     ''' Fixture that will return a list of transactions.'''
     print('Calling the transaction fixture.')
@@ -17,7 +17,7 @@ def transactions():
     trans = None
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope='session')
 def previous_month():
     '''
     Fixture that will return a tuple with two date values.
@@ -45,7 +45,7 @@ def previous_month():
     return (start_date, end_date)
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope='session')
 def current_month():
     '''
     Fixture that will return a tuple with two date values.

@@ -33,9 +33,10 @@ class Perceptron(object):
         class_labels : array-like, shape = [n_samples]
         Target values
         '''
-
-        # The zero index is the threshold.
-        self.weights = np.zeros(1 + feature_matrix.shape[1])
+        self.feature_matrix = feature_matrix
+        self.class_labels = class_labels
+        self.threshold = 0
+        self.weights = np.zeros(feature_matrix.shape[1])
         self.errors = []
 
         for _ in range(self.iterations):
@@ -56,8 +57,8 @@ class Perceptron(object):
                 # Apply the learning rate which is a percentage of the difference.
                 update = self.eta * difference
 
-                self.weights[1:] += update * sample
-                self.weights[0] += update
+                self.weights += update * sample
+                self.threshold += update
 
                 errors += int(update != 0.0)
 
@@ -66,7 +67,7 @@ class Perceptron(object):
 
     def net_input(self, sample):
         ''' Calculate net input. '''
-        return np.dot(sample, self.weights[1:]) + self.weights[0]
+        return np.dot(sample, self.weights) + self.threshold
 
 
     def predict(self, sample):

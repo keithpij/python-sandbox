@@ -4,7 +4,7 @@ import pytest
 import dataaccess
 import reports
 import settings
-from fixtures import transactions, previous_month, current_month
+from test_fixtures import transactions, previous_month, current_month
 
 
 '''
