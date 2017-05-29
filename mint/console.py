@@ -1,4 +1,6 @@
-# Transaction class
+''' 
+Console for the Mint app.
+'''
 import sys
 import csv
 import re
@@ -129,6 +131,32 @@ def get_transactions_by_type(start_date, end_date, transactions, type):
             if transaction.transaction_type.lower() == type.lower():
                 debits.append(transaction)
     return debits
+
+
+def print_menu():
+    '''
+    Prints a list of all commands and parameters.
+    '''
+    print('\n')
+    print('a - to get a list of accounts.')
+    print('cat - to see spending by category.')
+    print('cp - to compare the current month to the previous month.')
+    print('dr [start date] [end date] - to change the date range for which pricing data is loaded.')
+    print('help - to show this help menu')
+    print('income - to see income for the current date range.')
+    print('lf - to load the transaction file.')
+    print('pie - to see a pie chart of spending by category.')
+    print('spending - to see spending for the current date range.')
+    print('quit - to quit this program')
+    print('\n')
+
+
+def print_command_help(command):
+    '''
+    Prints help text for a spcific command.
+    '''
+    if command == 'cfs':
+        print('cfs [symbol] [buy_trigger(%)] [sell_trigger(%)] [shares_per_lot] [max_lots] [max_hold_days] - to run a strategy')
 
 
 def get_user_requests():
