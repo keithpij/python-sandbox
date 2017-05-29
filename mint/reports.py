@@ -40,18 +40,25 @@ def print_transaction_totals(title, transactions):
 
 
 def print_category_totals(categories):
+    print('\n')
     # Create a dictionary of totals for each category.
     category_totals = dict()
     for category_name in categories.keys():
+        if category_name.lower() == 'credit card payment':
+            continue
         total = 0
         for transaction in categories[category_name]:
             total += transaction.amount
         category_totals[category_name] = total
 
     # Loop through and print the totals for each category.
+    grand_total = 0
     for category_name in sorted(category_totals, key=category_totals.__getitem__, reverse=True):  #sorted(d, key=d.__getitem__)
         category_total = category_totals[category_name]
+        grand_total += category_total
         print(pad(category_name, 20) + '\t' + '${:9,.2f}'.format(category_total))
+
+    print('\nTotal:  ' + '${:9,.2f}'.format(grand_total) + '\n')
 
 
 def print_category_comparison(previous_month_totals, current_month_totals):
