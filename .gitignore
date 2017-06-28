@@ -1,6 +1,6 @@
 # Generated files from unit testing and code coverage tracking#
 ###################
-/mint/test/qualityreport/*
+/mint/test/htmlcov/*
 /mint/test/.cache/*
 /mint/.cache/*
 /mint/test/.coverage
