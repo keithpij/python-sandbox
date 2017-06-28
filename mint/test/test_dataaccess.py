@@ -4,7 +4,7 @@ Module to test the dataaccess module.
 import pytest
 import settings
 import dataaccess
-from test_fixtures import transactions, previous_month, current_month
+#from test_fixtures import transactions, previous_month, current_month
 
 
 def test_load_transaction_file():
@@ -27,11 +27,11 @@ def test_load_transaction_file_error_2():
     assert file_name in str(exception_info.value)
 
 
-def test_get_categories():
+def test_get_categories(transactions):
     ''' Test the get_categories function.'''
     transactions = dataaccess.load_transaction_file(settings.DATA_FILE)
     categories = dataaccess.get_categories(transactions)
-    assert 'Shopping' in categories
+    assert 'Food' in categories
 
 
 def test_get_category_by_name_1(transactions):

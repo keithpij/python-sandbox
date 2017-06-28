@@ -31,6 +31,26 @@ def print_transactions(title, transactions):
         total += transaction.amount
 
 
+def print_daily_spending(days):
+    total = 0
+    print('\n\nDaily Spending\n')
+
+    # Column headings
+    print(pad('Date', 15) +
+          pad('Amount', 20))
+
+    sorted_days = sorted(days.keys())
+    for day in sorted_days:
+        print(pad(day, 15) +
+              pad('${:9,.2f}'.format(days[day]), 20))
+        total += days[day]
+
+    print('\n')
+    print(pad('Total', 15) +
+          pad('${:9,.2f}'.format(total), 20))
+    print('\n')
+
+
 def print_transaction_totals(title, transactions):
     total = 0
     for transaction in transactions:

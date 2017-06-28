@@ -9,8 +9,9 @@ if __name__ == '__main__':
     cov.erase()
     cov.start()
 
-    # Start te pytest runner.
-    pytest.main(['--maxfail=5', '--durations=5', '--color=yes'])
+    # Start the pytest runner.
+    #pytest.main(['--maxfail=5', '--durations=5', '--color=yes'])
+    pytest.main()
 
     # End coverage tracking and save the results.
     cov.stop()

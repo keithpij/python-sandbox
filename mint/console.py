@@ -95,6 +95,18 @@ def get_categories(transactions):
     return categories
 
 
+def get_daily_spending():
+    days = dict()
+    for transaction in TRANSACTIONS:
+        if (transaction.transaction_date >= START_DATE) and (transaction.transaction_date <= END_DATE):
+            if transaction.transaction_type.lower() == 'debit':
+                if transaction.transaction_date in days:
+                    days[transaction.transaction_date] = days[transaction.transaction_date] + transaction.amount
+                else:
+                    days[transaction.transaction_date] = transaction.amount
+    return days
+
+
 def get_accounts(transactions):
     accounts = dict()
     for transaction in transactions:
@@ -141,6 +153,7 @@ def print_menu():
     print('a - to get a list of accounts.')
     print('cat - to see spending by category.')
     print('cp - to compare the current month to the previous month.')
+    print('day - to show daily spend for the current date range.')
     print('dr [start date] [end date] - to change the date range for which pricing data is loaded.')
     print('help - to show this help menu')
     print('income - to see income for the current date range.')
@@ -177,6 +190,16 @@ def get_user_requests():
         if command[0:2] == 'a':
             accounts = get_accounts(TRANSACTIONS)
             reports.print_accounts(accounts)
+            continue
+
+        if command[0:3] == 'day':
+            report_date = command[3:].strip()
+            if len(report_date) > 0:
+                report_date = report_date.split(' ')
+                report_date = convert.to_date(report_date)
+            else:
+                days = get_daily_spending()
+                reports.print_daily_spending(days)
             continue
 
         if command[0:2] == 'dr':
