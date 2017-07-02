@@ -9,4 +9,4 @@ omit = test_*, fixtures.py, __init__.py
 show_missing = True
 
 [html]
-directory = qualityreport
+directory = covreport

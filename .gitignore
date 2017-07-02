@@ -1,8 +1,8 @@
 # Generated files from unit testing and code coverage tracking#
 ###################
-/mint/test/htmlcov/*
-/mint/test/.cache/*
-/mint/.cache/*
+/mint/test/covreport/
+/mint/test/.cache/
+/mint/.cache/
 /mint/test/.coverage
 
 # Internet movie database for sentiment analysis.
