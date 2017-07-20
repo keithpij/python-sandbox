@@ -54,8 +54,8 @@ def plot_feature_matrix(feature_matrix):
 
 
 def learn(feature_matrix, class_labels):
-    classifier = perceptron.Perceptron(eta=0.1, iterations=10)
-    classifier.fit(feature_matrix, class_labels)
+    classifier = perceptron.Perceptron(feature_matrix, class_labels, eta=0.1, iterations=10)
+    classifier.fit()
     return classifier
 
 
