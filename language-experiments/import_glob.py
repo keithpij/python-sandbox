@@ -20,6 +20,7 @@ def search_files(dir):
     file_list = []
     extension_coounts = dict()
     for root, dirs, files in os.walk(dir):
+        print(root)
         for name in files:
             file_list.append(os.path.join(root, name))
             extension = os.path.splitext(name)[1]

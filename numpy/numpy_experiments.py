@@ -1,4 +1,7 @@
-''' Experiments with numpy. '''
+'''
+Experiments with numpy. 
+'''
+
 import numpy as np
 
 

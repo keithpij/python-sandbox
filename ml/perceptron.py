@@ -5,8 +5,8 @@ import csv
 import numpy as np
 
 IRIS_SETOSA = -1
-IRIS_VIRGINICA = 1
-TRACE_FILE = 'trace_file.csv'
+IRIS_VERSICOLOR = 1
+TRACE_FILE = 'perceptron_trace_file.csv'
 
 class Perceptron(object):
     '''
@@ -14,10 +14,10 @@ class Perceptron(object):
     '''
 
 
-    def __init__(self, feature_matrix, class_labels, eta=0.01, iterations=10):
+    def __init__(self, feature_matrix, class_labels, learning_rate=0.01, iterations=10):
         '''
         Parameters
-        eta : float - learning rate (between 0.0 and 1.0)
+        learning_rate : float - learning rate (between 0.0 and 1.0)
         iterations : int - the number of passes over the training dataset.
 
         feature_matrix : matrix, shape = [n_samples, n_features]
@@ -31,7 +31,7 @@ class Perceptron(object):
         weights : 1 dimensional array - the weights after fitting.
         errors : list - number of misclassifications in every epoch.
         '''
-        self.eta = eta
+        self.learning_rate = learning_rate
         self.iterations = iterations
         self.feature_matrix = feature_matrix
         self.class_labels = class_labels
@@ -45,12 +45,12 @@ class Perceptron(object):
         Fit training data.
         '''
 
-        with open('cfs.csv', 'w') as csvfile:
-            
+        with open(TRACE_FILE, 'w') as csvfile:
+
             # Header row in the csv file.
-            fieldnames = ['Iteration','Weight for Sepal length','Sepal length', 'Weight for petal length','petal length',
-                        'Threshold','Prediction', 'Label', 'Difference', 'eta', 'Update']
-            writer = csv.DictWriter(TRACE_FILE, fieldnames=fieldnames)
+            fieldnames = ['Iteration','Weight for Sepal length','Sepal length', 'Weight for petal length',
+                          'Petal length', 'Threshold','Prediction', 'Label', 'Difference', 'Learning rate', 'Update']
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writeheader()
 
             for iteration in range(self.iterations):
@@ -73,13 +73,14 @@ class Perceptron(object):
                     # Otherwise difference will be 2 or -2.
                     difference = target - prediction
 
-                    # Apply the learning rate which is a percentage of the difference.
-                    update = self.eta * difference
+                    if (difference != 0.0): errors +=1
+
+                    # Apply the learning rate to get a value which will be used to update the weights and the threshold.
+                    # The learning rate can be thought of as a percentage of the difference.
+                    update = self.learning_rate * difference
 
                     self.weights += update * sample
                     self.threshold += update
-
-                    errors += int(update != 0.0)
 
                     if sample_number == 1:
                         to_csv = dict()
@@ -92,21 +93,34 @@ class Perceptron(object):
                         to_csv['Prediction'] = prediction
                         to_csv['Label'] = target
                         to_csv['Difference'] = difference
-                        to_csv['eta'] = self.eta
+                        to_csv['Learning rate'] = self.learning_rate
                         to_csv['Update'] = update
                         writer.writerow(to_csv)
 
-            self.errors.append(errors)
+                self.errors.append(errors)
 
 
     def net_input(self, sample):
-        ''' Calculate net input.
+        '''
+        Calculate net input. 
+        This function is known as the net input since this algorithm was designed to model the 
+        neron. All the inputs (features) are multiplied by the weight for that feature and a threshold
+        is added. The predict function will then make a determination as to what class each collection
+        of features belongs.
+
+        When this function is called during the learning process it will be called with a single sample
+        which is a 1 dimensional array or vector. However once learning is complete it can be called 
+        with an entire feature matrix. This is possible because we are using numpy.dot. 
         '''
         return np.dot(sample, self.weights) + self.threshold
 
 
     def predict(self, sample):
-        ''' Return class label after unit step. '''
-        # Returns 1 if net_input of sample is greater than 0.
-        # Returns -1 otherwise.
-        return np.where(self.net_input(sample) >= 0.0, IRIS_VIRGINICA, IRIS_SETOSA)
+        '''
+        Return class label based on a unit step function.
+        Returns 1 (for Iris Versicolor) if net_input of sample is greater than 0.
+        Returns -1 (for Iris Setosa) otherwise.
+        This function (like the net_input function) can be called with a single sample or an
+        entire feature matrix.
+        '''
+        return np.where(self.net_input(sample) >= 0.0, IRIS_VERSICOLOR, IRIS_SETOSA)

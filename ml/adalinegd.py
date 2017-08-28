@@ -6,6 +6,9 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 import common
 
+IRIS_SETOSA = -1
+IRIS_VERSICOLOR = 1
+
 
 class AdalineGD(object):
     '''
@@ -19,39 +22,44 @@ class AdalineGD(object):
     '''
 
 
-    def __init__(self, eta=0.01, iterations=10):
-        self.eta = eta
-        self.iterations = iterations
-        self.cost = []
-
-
-    def fit(self, feature_matrix, class_labels):
+    def __init__(self, feature_matrix, class_labels, learning_rate=0.01, iterations=10):
         '''
-        Fit training data.
-
         Parameters
+        learning_rate : float - learning rate (between 0.0 and 1.0)
+        iterations : int - the number of passes over the training dataset.
 
-        feature_matrix : array-like, shape = [n_samples, n_features]
+        feature_matrix : matrix, shape = [n_samples, n_features]
         Training vectors where n_samples is the number of samples and
         n_features is the number of features.
 
-        class_labels : array-like, shape = [n_samples]
+        class_labels : vector, shape = [n_samples]
         Target values
+
+        Attributes
+        weights : 1 dimensional array - the weights after fitting.
+        errors : list - number of misclassifications in every epoch.
         '''
+        self.learning_rate = learning_rate
+        self.iterations = iterations
         self.feature_matrix = feature_matrix
         self.class_labels = class_labels
-        self.weights = np.zeros(feature_matrix.shape[1])
         self.threshold = 0
+        self.weights = np.zeros(feature_matrix.shape[1])
+        self.cost = []
+
+
+    def fit(self):
+        '''
+        Fit training data.
+        '''
 
         for _ in range(self.iterations):
             output = self.net_input(self.feature_matrix)
             errors = self.class_labels - output
-            self.weights += self.eta * self.feature_matrix.T.dot(errors)
-            self.threshold += self.eta * errors.sum()
+            self.weights += self.learning_rate * self.feature_matrix.T.dot(errors)
+            self.threshold += self.learning_rate * errors.sum()
             cost = (errors**2).sum()/2.0
             self.cost.append(cost)
-
-        return self
 
 
     def net_input(self, sample):
@@ -65,10 +73,14 @@ class AdalineGD(object):
 
 
     def predict(self, sample):
-        ''' Return class label after unit step. '''
-        # Returns 1 if net_input of sample is greater than 0.
-        # Returns -1 otherwise.
-        return np.where(self.activation(sample) >= 0.0, 1, -1)
+        '''
+        Return class label based on a unit step function.
+        Returns 1 (for Iris Versicolor) if net_input of sample is greater than 0.
+        Returns -1 (for Iris Setosa) otherwise.
+        This function (like the net_input function) can be called with a single sample or an
+        entire feature matrix.
+        '''
+        return np.where(self.activation(sample) >= 0.0, IRIS_VERSICOLOR, IRIS_SETOSA)
 
 
 def plot_cost_across_epochs():
