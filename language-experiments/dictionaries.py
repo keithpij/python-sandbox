@@ -1,4 +1,13 @@
-# Dictionaries
+'''
+Using the built-in function dict() to create dictionaries.
+
+class dict(**kwarg)
+class dict(mapping, **kwarg)
+class dict(iterable, **kwarg)
+
+'''
+
+
 print('Fun with Dictionaries')
 
 # Create an empty dictionary.

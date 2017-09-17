@@ -1,4 +1,7 @@
-# Writing files
+''' 
+Writing files using the open built-in function.
+'''
+
 
 # Open a file for output.
 fout = open('portfolio.txt', 'w')
