@@ -90,12 +90,15 @@ def plot_contour(X, Y, Z):
     plt.show()
 
 
-def custom_function(x, y):
-    weight_y = .5
-    weight_x = .5
+def custom_function(f1, f2):
+    w1 = .8
+    w2 = .3
+    threshold = -7
 
-    z = (weight_x * x) + (weight_y * y) 
-    return z
+    net_input = (w1 * f1) + (w2 * f2) + threshold
+    if net_input > 0 label = 1
+    else label = -1 
+    return label
 
 
 if __name__ == '__main__':
