@@ -17,4 +17,4 @@ for (dirName, dirs, files) in os.walk(pricingDir):
         count = count + 1
         print(fileName)
 
-print 'Files: ', count
+print('Files: ', count)
