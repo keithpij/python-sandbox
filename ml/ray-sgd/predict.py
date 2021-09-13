@@ -3,7 +3,7 @@ from string import punctuation
 import numpy as np
 import torch
 
-import sa_pytorch
+import pytorch_sa
 
 def tokenize_text(text, mapping, sequence_length):
     lower_text = text.lower() # lowercase
@@ -70,10 +70,10 @@ def predict(net, features, train_on_gpu=False):
 if __name__ == "__main__":
     #text = 'It was so amazing. Best Marvel movie, better than endgame not kidding.'
     text = 'This sucks it totally stunk.'
-    X, y = sa_pytorch.get_all_data()
+    X, y = pytorch_sa.get_all_data()
     print('Reviews: ', len(X))
 
-    word_to_int_mapping = sa_pytorch.create_tokens(X)
+    word_to_int_mapping = pytorch_sa.create_tokens(X)
 
     # test code and generate tokenized review
     features = tokenize_text(text, word_to_int_mapping, 200)
@@ -82,5 +82,5 @@ if __name__ == "__main__":
     # test conversion to tensor and pass into your model
     #feature_tensor = torch.from_numpy(np.array(features))
     #print(feature_tensor.size())
-    net = sa_pytorch.load_network()    
+    net = pytorch_sa.load_network()    
     predict(net, features)
