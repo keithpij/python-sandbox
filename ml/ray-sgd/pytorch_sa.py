@@ -29,7 +29,7 @@ def train_local(config):
     # training params
     epochs = config.get('epochs', 4)
     counter = 0
-    print_every = 100
+    #print_every = 100
     clip = 5 # gradient clipping
 
     # move model to GPU, if available
@@ -42,11 +42,12 @@ def train_local(config):
     for epoch in range(epochs):
         # initialize hidden state
         h = model.init_hidden(batch_size)
+        print('Epoch: {}'.format(epoch))
 
         # batch loop
         for inputs, labels in train_loader:
             counter += 1
-            print('Epoch: {} Batch: {}'.format(epoch, counter))
+            #print('Epoch: {} Batch: {}'.format(epoch, counter))
 
             if gpu_available:
                 inputs, labels = inputs.cuda(), labels.cuda()
@@ -114,62 +115,56 @@ def train_distributed(config, num_workers=1, use_gpu=False):
 
     epochs = config.get('epochs', 4)
 
+    print('Timer started.')
     start_time = time.time()
     for i in range(epochs):
         stats = torch_trainer.train()
         print(stats)
     duration = time.time() - start_time
 
-    #print(torch_trainer.validate())
+    #torch_trainer.validate()
 
     # If using Ray Client, make sure to force model onto CPU.
     model = torch_trainer.get_model(to_cpu=ray.util.client.ray.is_connected())
-    print("Trained weight: % .5f, Bias: % .5f" % (
-        model.weight.item(), model.bias.item()))
     torch_trainer.shutdown()
     return model, duration
 
 
-def save_network(model):
+def save_model(model):
     torch.save(model, NETWORK_FILE_PATH)
 
 
-def load_network():
+def load_model():
     model = torch.load(NETWORK_FILE_PATH)
     return model
 
 
 def main(args):
 
+    # Configuration
     config = {
+        'smoke_test_size': 200,
         'epochs': 4,
         'output_size': 1,
         'embedding_dim': 400,
         'hidden_dim': 256,
         'n_layers': 2,
         'lr': 0.001,
-        'batch_size': 50,
+        'batch_size': 10,
         'gpu_available': torch.cuda.is_available()
     }
-
-    # Loaders
-    #batch_size = 50
-    #train_loader, valid_loader = data_creator(config)
-
-    # Network
-    #gpu_available = torch.cuda.is_available()
-    #net = network_creator(config)
-    #print(net)
-    #print(config)
 
     # Train
     if args.distribute:
         model, duration = train_distributed(config, num_workers=4)
     else:
         model, duration = train_local(config)
+    
+    # Report results
+    print('Smoke Test size: {}'.format(config.get('smoke_test_size')))
     print('Total elapsed training time: ', duration)
     print(type(model))
-    save_network(model)
+    save_model(model)
 
 
 if __name__ == "__main__":

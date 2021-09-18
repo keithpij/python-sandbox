@@ -82,5 +82,5 @@ if __name__ == "__main__":
     # test conversion to tensor and pass into your model
     #feature_tensor = torch.from_numpy(np.array(features))
     #print(feature_tensor.size())
-    net = pytorch_sa.load_network()    
+    net = pytorch_sa.load_model()
     predict(net, features)

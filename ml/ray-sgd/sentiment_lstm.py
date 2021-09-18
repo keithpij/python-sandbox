@@ -2,14 +2,14 @@ import torch.nn as nn
 
 
 class SentimentLSTM(nn.Module):
-    """
-    The RNN model that will be used to perform Sentiment analysis.
-    """
+    '''
+    An LSTM is a type of RNN network the  that will be used to perform Sentiment analysis.
+    '''
 
     def __init__(self, vocab_size, output_size, embedding_dim, hidden_dim, n_layers, drop_prob=0.5):
-        """
-        Initialize the model by setting up the layers.
-        """
+        '''
+        Initialize the model and set up the layers.
+        '''
         super().__init__()
 
         self.output_size = output_size
@@ -25,14 +25,14 @@ class SentimentLSTM(nn.Module):
         self.dropout = nn.Dropout(0.3)
 
         # linear and sigmoid layers
-        self.fc = nn.Linear(hidden_dim, output_size)
+        self.fcl = nn.Linear(hidden_dim, output_size)
         self.sig = nn.Sigmoid()
 
 
     def forward(self, x, hidden):
-        """
-        Perform a forward pass of our model on some input and hidden state.
-        """
+        '''
+        Forward pass
+        '''
         batch_size = x.size(0)
 
         # embeddings and lstm_out
@@ -44,7 +44,7 @@ class SentimentLSTM(nn.Module):
 
         # dropout and fully-connected layer
         out = self.dropout(lstm_out)
-        out = self.fc(out)
+        out = self.fcl(out)
         # sigmoid function
         sig_out = self.sig(out)
 

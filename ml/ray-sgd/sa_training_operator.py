@@ -2,7 +2,7 @@
 This module contains the Sentiment Analysis Training Operator.
 '''
 from ray.util.sgd.torch import TrainingOperator
-from ray.util.sgd.utils import override
+#from ray.util.sgd.utils import override
 import torch
 import torch.nn as nn
 
@@ -26,19 +26,15 @@ class SATrainingOperator(TrainingOperator):
         batch_size = self.config.get('batch_size')
         gpu_available = self.config.get('gpu_available')
         self.hidden_initial = model.init_hidden(batch_size, gpu_available)
+        #print('Traing operator created.')
 
         self.model, self.optimizer, self.criterion = self.register(
                 models=model, optimizers=optimizer, criterion=loss)
 
 
-    @override(TrainingOperator)
+    #@override(TrainingOperator)
     def train_epoch(self, iterator, info):
-        print('Start of train_epoch.')
-
-        #self.model.train()
-        #for batch in iterator:
-            # do some processing
-        #    metrics = {"metric_1": 1, "metric_2": 3} # dict of metrics
+        #print('Start of train_epoch.')
 
         batch_size = self.config.get('batch_size')
         gpu_available = self.config.get('gpu_available')
@@ -50,7 +46,7 @@ class SATrainingOperator(TrainingOperator):
         # batch loop
         for inputs, labels in iterator:
             counter += 1
-            print('Batch: {}'.format(counter))
+            #print('Batch: {}'.format(counter))
 
             if gpu_available:
                 inputs, labels = inputs.cuda(), labels.cuda()

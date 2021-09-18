@@ -62,6 +62,8 @@ def create_tokens(X):
     count_by_word_sorted = count_by_word.most_common(total_words)
     word_to_int_mapping = {w:i+1 for i, (w,c) in enumerate(count_by_word_sorted)}
 
+    #print(word_to_int_mapping)
+    #bra
     return word_to_int_mapping
 
 
@@ -125,13 +127,18 @@ def split(X, y, train_percent):
 
 def data_creator(config):
     X, y = get_all_data()
-    print('Reviews: ', len(X))
+
+    smoke_test_size = config.get('smoke_test_size', 0)
+    if smoke_test_size:
+        X = X[:smoke_test_size]
+        y = y[:smoke_test_size]
 
     word_to_int_mapping = create_tokens(X)
     X = tokenize(X, word_to_int_mapping)
 
     X = reshape(X, 200)
     X_train, y_train, X_valid, y_valid = split(X, y, 0.8)
+    #print('Total number of reviews: ', len(X))
     #analyze_length(X_train)
     #analyze_length(X_valid)
 
@@ -151,6 +158,7 @@ def data_creator(config):
 
 def model_creator(config):
     # Instantiate the model.
+    #print('Model created.')
     vocab_size = config.get('vocab_size')
     output_size = config.get('output_size')
     embedding_dim = config.get('embedding_dim') #400
