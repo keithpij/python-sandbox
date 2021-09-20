@@ -2,7 +2,6 @@ import argparse
 import os
 import time
 
-import numpy as np
 import ray
 from ray.util.sgd import TorchTrainer
 import torch
@@ -12,7 +11,7 @@ from sa_training_operator import SATrainingOperator
 import pytorch_creators as cr
 
 
-NETWORK_FILE_PATH = os.path.join(os.getcwd(), 'lstm.pt')
+MODEL_FILE_PATH = os.path.join(os.getcwd(), 'lstm.pt')
 
 
 def train_local(config):
@@ -105,6 +104,8 @@ def train_local(config):
 
 def train_distributed(config, num_workers=1, use_gpu=False):
 
+    ray.init()
+
     torch_trainer = TorchTrainer(
         training_operator_cls=SATrainingOperator,
         num_workers=num_workers,
@@ -131,11 +132,11 @@ def train_distributed(config, num_workers=1, use_gpu=False):
 
 
 def save_model(model):
-    torch.save(model, NETWORK_FILE_PATH)
+    torch.save(model, MODEL_FILE_PATH)
 
 
 def load_model():
-    model = torch.load(NETWORK_FILE_PATH)
+    model = torch.load(MODEL_FILE_PATH)
     return model
 
 
@@ -143,7 +144,8 @@ def main(args):
 
     # Configuration
     config = {
-        'smoke_test_size': 200,
+        'smoke_test_size': 200,  # Length of training set. 0 for all reviews.
+        'training_dim': 200,     # Number of tokens (words) to put into each review.
         'epochs': 4,
         'output_size': 1,
         'embedding_dim': 400,

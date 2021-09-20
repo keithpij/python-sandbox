@@ -1,0 +1,8 @@
+numpy
+ray
+pandas
+ray[tune]
+ray[default]
+torch
+matplotlib
+tensorflow

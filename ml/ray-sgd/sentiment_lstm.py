@@ -28,7 +28,6 @@ class SentimentLSTM(nn.Module):
         self.fcl = nn.Linear(hidden_dim, output_size)
         self.sig = nn.Sigmoid()
 
-
     def forward(self, x, hidden):
         '''
         Forward pass

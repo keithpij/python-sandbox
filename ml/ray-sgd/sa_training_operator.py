@@ -2,7 +2,6 @@
 This module contains the Sentiment Analysis Training Operator.
 '''
 from ray.util.sgd.torch import TrainingOperator
-#from ray.util.sgd.utils import override
 import torch
 import torch.nn as nn
 
@@ -10,7 +9,9 @@ import pytorch_creators as cr
 
 
 class SATrainingOperator(TrainingOperator):
-
+    '''
+    Training operator for the Sentiment Analysis model.
+    '''
     def setup(self, config):
         # Need to register the data first since the data_creator adds
         # config needed by the model (network).
@@ -21,6 +22,8 @@ class SATrainingOperator(TrainingOperator):
         model = cr.model_creator(config)
         loss = cr.loss_creator(config)
         optimizer = cr.optimizer_creator(model, config)
+        self.model, self.optimizer, self.criterion = self.register(
+                models=model, optimizers=optimizer, criterion=loss)
 
         # Setup the initial hidden state.
         batch_size = self.config.get('batch_size')
@@ -28,20 +31,15 @@ class SATrainingOperator(TrainingOperator):
         self.hidden_initial = model.init_hidden(batch_size, gpu_available)
         #print('Traing operator created.')
 
-        self.model, self.optimizer, self.criterion = self.register(
-                models=model, optimizers=optimizer, criterion=loss)
-
-
-    #@override(TrainingOperator)
     def train_epoch(self, iterator, info):
         #print('Start of train_epoch.')
 
-        batch_size = self.config.get('batch_size')
         gpu_available = self.config.get('gpu_available')
         clip = 5 # gradient clipping
 
         # initialize hidden state
-        h = self.hidden_initial  #self.model.init_hidden(batch_size)
+        h = self.hidden_initial
+
         counter = 0
         # batch loop
         for inputs, labels in iterator:
