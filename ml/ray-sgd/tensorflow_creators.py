@@ -8,8 +8,27 @@ def data_creator_np(config):
     print('Total number of reviews: ', len(X))
     return np.array(X), np.array(y)
 
+def model_creator(config):
+    from tensorflow import keras
 
-def data_creator2(config):
+    vocab_size = config.get('vocab_size')
+    embedding_dim = config.get('embedding_dim')
+    hidden_dim = config.get('hidden_dim')
+    print('vocab_size {}'.format(vocab_size))
+
+    model = keras.models.Sequential([
+        keras.layers.Embedding(vocab_size, embedding_dim, input_shape=[None]),
+        keras.layers.GRU(hidden_dim, return_sequences=True),
+        keras.layers.GRU(hidden_dim),
+        keras.layers.Dense(1, activation="sigmoid")
+    ])
+
+    model.compile(loss="binary_crossentropy", optimizer="adam", metrics=["accuracy"])
+    
+    return model
+
+
+def data_creator(config):
     import tensorflow as tf
     X, y = pre.preprocess_data(config)
     print('Total number of reviews: ', len(X))

@@ -16,33 +16,13 @@ import tensorflow_creators as cr
 MODEL_FOLDER = os.path.join(os.getcwd(), 'keras')
 
 
-def model_creator(config):
-    from tensorflow import keras
-
-    vocab_size = config.get('vocab_size', 7133)
-    embedding_dim = config.get('embedding_dim')
-    hidden_dim = config.get('hidden_dim')
-    print('vocab_size {}'.format(vocab_size))
-
-    model = keras.models.Sequential([
-        keras.layers.Embedding(vocab_size, embedding_dim, input_shape=[None]),
-        keras.layers.GRU(hidden_dim, return_sequences=True),
-        keras.layers.GRU(hidden_dim),
-        keras.layers.Dense(1, activation="sigmoid")
-    ])
-
-    model.compile(loss="binary_crossentropy", optimizer="adam", metrics=["accuracy"])
-    
-    return model
-
-
 def train_local(config):
     epochs = config.get('epochs')
     batch_size = config.get('batch_size')
 
     #X_train, y_train = cr.data_creator(config)
-    train_dataset, val_dataset = cr.data_creator2(config)
-    model = model_creator(config)
+    train_dataset, val_dataset = cr.data_creator(config)
+    model = cr.model_creator(config)
 
     start_time = time.time()
     #history = model.fit(X_train, y_train, batch_size=batch_size, epochs=epochs, validation_split=0.2)
@@ -59,8 +39,8 @@ def train_distributed(config, num_replicas=4, use_gpu=False):
     ray.init()
 
     trainer = TFTrainer(
-        model_creator=model_creator,
-        data_creator=cr.data_creator2,
+        model_creator=cr.model_creator,
+        data_creator=cr.data_creator,
         num_replicas=num_replicas,
         use_gpu=use_gpu,
         verbose=True,
@@ -72,7 +52,7 @@ def train_distributed(config, num_replicas=4, use_gpu=False):
     start_time = time.time()
     for i in range(epochs):
         stats = trainer.train()
-        print(stats)
+        #print(stats)
     duration = time.time() - start_time
 
     model = trainer.get_model()
@@ -116,12 +96,11 @@ def main(args):
     config = {
         'smoke_test_size': 200,  # Length of training set. 0 for all reviews.
         'training_dim': 200,     # Number of tokens (words) to put into each review.
+        'vocab_size': 7000,      # Vocabulary size
         'epochs': 4,
         'output_size': 1,
         'embedding_dim': 400,
         'hidden_dim': 256,
-        'n_layers': 2,
-        'lr': 0.001,
         'batch_size': 10
     }
 

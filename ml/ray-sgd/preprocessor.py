@@ -48,13 +48,19 @@ def clean_entry(review):
     return cleaned
 
 
-def create_tokens(X):
+def create_tokens(X, vocab_size):
     all_words_string = ' '.join(X)
     words_list = all_words_string.split()
     count_by_word = Counter(words_list)
     total_words = len(count_by_word)
     count_by_word_sorted = count_by_word.most_common(total_words)
-    word_to_int_mapping = {w:i+1 for i, (w,c) in enumerate(count_by_word_sorted)}
+    word_to_int_mapping = {}
+    for i, (w,c) in enumerate(count_by_word_sorted):
+        if i == vocab_size-1:  # Leave one for 0 padding.
+            break
+        word_to_int_mapping[w] = i + 1
+
+    #word_to_int_mapping = {w:i+1 for i, (w,c) in enumerate(count_by_word_sorted)}
 
     #print(word_to_int_mapping)
     #bra
@@ -64,7 +70,11 @@ def create_tokens(X):
 def tokenize(X, mapping):
     entries_int = []
     for entry_text in X:
-        entry_int = [mapping[w] for w in entry_text.split()]
+        entry_int = []
+        for w in entry_text.split():
+            if w in mapping:
+                entry_int.append(mapping[w])
+        #entry_int = [mapping[w] for w in entry_text.split()]
         entries_int.append(entry_int)
     return entries_int
 
@@ -110,15 +120,19 @@ def preprocess_data(config):
     X, y = get_all_data()
 
     smoke_test_size = config.get('smoke_test_size', 0)
+    vocab_size = config.get('vocab_size')
+
     if smoke_test_size:
         X = X[:smoke_test_size]
         y = y[:smoke_test_size]
 
-    word_to_int_mapping = create_tokens(X)
+    word_to_int_mapping = create_tokens(X, vocab_size)
+    print(len(word_to_int_mapping))
+
     X = tokenize(X, word_to_int_mapping)
 
     # Set vocab_size into config so that it can be used by the network.
-    config['vocab_size'] = len(word_to_int_mapping) + 1 # Add one to account for 0 padding.
+    #config['vocab_size'] = len(word_to_int_mapping) + 1 # Add one to account for 0 padding.
 
     training_dim = config.get('training_dim', 200)
     X = reshape(X, training_dim)
