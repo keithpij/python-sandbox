@@ -1,20 +1,29 @@
+'''
+This module contains creators used for training the Tensorflow LSTM model.
+'''
+from tensorflow import keras
+import tensorflow as tf
+import preprocessor as pre
 import numpy as np
 
-import preprocessor as pre
-import pytorch_creators as cr
 
 def data_creator_np(config):
+    '''
+    Simple creator that returns a numpy array. This will only work for local training.
+    '''
     X, y = pre.preprocess_data(config)
     print('Total number of reviews: ', len(X))
     return np.array(X), np.array(y)
 
 def model_creator(config):
-    from tensorflow import keras
+    '''
+    Creator that returns a LSTM model using Keras.
+    Note: Compile is called here.
+    '''
 
     vocab_size = config.get('vocab_size')
     embedding_dim = config.get('embedding_dim')
     hidden_dim = config.get('hidden_dim')
-    print('vocab_size {}'.format(vocab_size))
 
     model = keras.models.Sequential([
         keras.layers.Embedding(vocab_size, embedding_dim, input_shape=[None]),
@@ -24,12 +33,16 @@ def model_creator(config):
     ])
 
     model.compile(loss="binary_crossentropy", optimizer="adam", metrics=["accuracy"])
-    
+
     return model
 
 
 def data_creator(config):
-    import tensorflow as tf
+    '''
+    Creator that returns a TensorFlow dataset. This is the best option for both
+    local and distributed training.
+    '''
+    #import tensorflow as tf
     X, y = pre.preprocess_data(config)
     print('Total number of reviews: ', len(X))
 
@@ -58,4 +71,3 @@ def split(X, y, train_percent):
     X_valid = X[int(train_percent*length):]
     y_valid = y[int(train_percent*length):]
     return X_train, y_train, X_valid, y_valid
-

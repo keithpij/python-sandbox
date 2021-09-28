@@ -1,3 +1,7 @@
+'''
+Main module for RaySGD PyTorch demo.
+Trains an LSTM model locally (on a single process) and distributed using RaySGD and PyTorch.
+'''
 import argparse
 import os
 import time
@@ -16,7 +20,7 @@ MODEL_FILE_PATH = os.path.join(os.getcwd(), 'lstm.pt')
 
 def train_local(config):
 
-    train_loader, valid_loader = cr.data_creator(config)
+    train_loader, _ = cr.data_creator(config)
     model = cr.model_creator(config)
     loss_func = cr.loss_creator(config)
     optimizer = cr.optimizer_creator(model, config)
@@ -118,7 +122,7 @@ def train_distributed(config, num_workers=1, use_gpu=False):
 
     print('Timer started.')
     start_time = time.time()
-    for i in range(epochs):
+    for _ in range(epochs):
         stats = torch_trainer.train()
         print(stats)
     duration = time.time() - start_time
@@ -161,7 +165,7 @@ def main(args):
         model, duration = train_distributed(config, num_workers=4)
     else:
         model, duration = train_local(config)
-    
+
     # Report results
     print('Smoke Test size: {}'.format(config.get('smoke_test_size')))
     print('Total elapsed training time: ', duration)

@@ -1,41 +1,47 @@
 '''
-RaySGD demo for TensorFlow.
+Main module for RaySGD TensorFlow demo.
+Trains an LSTM model locally (on a single process) and distributed using RaySGD.
 '''
 import argparse
 import os
 import time
 
-import numpy as np
 import ray
 from ray.util.sgd.tf.tf_trainer import TFTrainer
 from tensorflow import keras
-
 import tensorflow_creators as cr
+import numpy as np
 
 
 MODEL_FOLDER = os.path.join(os.getcwd(), 'keras')
 
 
 def train_local(config):
+    '''
+    Train model locally within a single process.
+    '''
     epochs = config.get('epochs')
     batch_size = config.get('batch_size')
 
-    #X_train, y_train = cr.data_creator(config)
-    train_dataset, val_dataset = cr.data_creator(config)
+    train_dataset, _ = cr.data_creator(config)
     model = cr.model_creator(config)
 
     start_time = time.time()
     #history = model.fit(X_train, y_train, batch_size=batch_size, epochs=epochs, validation_split=0.2)
     #history = model.fit(X_train, y_train, batch_size=batch_size, epochs=epochs)
     history = model.fit(train_dataset, batch_size=batch_size, epochs=epochs)
-    print(history)
+    #print(history)
     duration = time.time() - start_time
 
     return model, duration
 
 
 def train_distributed(config, num_replicas=4, use_gpu=False):
-
+    '''
+    Train model using RaySGD.
+    num_replicas determines the number of processes.
+    Uses the same config as local training.
+    '''
     ray.init()
 
     trainer = TFTrainer(
@@ -50,7 +56,7 @@ def train_distributed(config, num_replicas=4, use_gpu=False):
 
     print('Timer started.')
     start_time = time.time()
-    for i in range(epochs):
+    for _ in range(epochs):
         stats = trainer.train()
         #print(stats)
     duration = time.time() - start_time
@@ -60,20 +66,32 @@ def train_distributed(config, num_replicas=4, use_gpu=False):
     return model, duration
 
 
-def evaluate_model(model, x_test, y_test):
-    score = model.evaluate(x_test, y_test, verbose=0)
+def evaluate_model(model, X_test, y_test):
+    '''
+    Evaluate a model using a test set.
+    '''
+    score = model.evaluate(X_test, y_test, verbose=0)
     return score
 
 
 def save_model(model):
+    '''
+    Save the model for future use.
+    '''
     keras.models.save_model(model, MODEL_FOLDER)
 
 
 def load_model():
+    '''
+    Load a previously trained model.
+    '''
     return keras.models.load_model(MODEL_FOLDER, compile=True)
 
 
 def predict(model, image_samples):
+    '''
+    Make predictions using a previously trained model.
+    '''
     # A few random samples
     samples_to_predict = []
 
@@ -91,7 +109,9 @@ def predict(model, image_samples):
 
 
 def main(args):
-
+    '''
+    Main entry point.
+    '''
     # Configuration
     config = {
         'smoke_test_size': 200,  # Length of training set. 0 for all reviews.
@@ -109,7 +129,7 @@ def main(args):
         model, duration = train_distributed(config, num_replicas=4)
     else:
         model, duration = train_local(config)
-    
+
     # Report results
     print('Smoke Test size: {}'.format(config.get('smoke_test_size')))
     print('Batch size: {}'.format(config.get('batch_size')))
