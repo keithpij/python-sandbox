@@ -1,5 +1,6 @@
 # Internet movie database for sentiment analysis.
-/ml/aclimdb/*
+/ml/ray-sgd/aclimdb/*
+/ml/ray-sgd/*.pt
 
 # Compiled source #
 ###################
