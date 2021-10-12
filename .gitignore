@@ -2,6 +2,9 @@
 /ml/ray-sgd/aclImdb/*
 /ml/ray-sgd/*.pt
 
+# Virtual environments
+.venv/
+
 # Compiled source #
 ###################
 *.com
