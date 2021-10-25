@@ -1,8 +1,8 @@
+matplotlib
 numpy
-ray
 pandas
+ray
 ray[tune]
 ray[default]
-torch
-matplotlib
 tensorflow
+torch
