@@ -27,8 +27,6 @@ def train_local(config):
     model = cr.model_creator(config)
 
     start_time = time.time()
-    #history = model.fit(X_train, y_train, batch_size=batch_size, epochs=epochs, validation_split=0.2)
-    #history = model.fit(X_train, y_train, batch_size=batch_size, epochs=epochs)
     history = model.fit(train_dataset, batch_size=batch_size, epochs=epochs)
     #print(history)
     duration = time.time() - start_time
