@@ -121,7 +121,8 @@ def main(args):
         'output_size': 1,
         'embedding_dim': 400,
         'hidden_dim': 256,
-        'batch_size': 10
+        'batch_size': 10,
+        'gpu_available': False
     }
 
     # Train

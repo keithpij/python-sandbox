@@ -150,6 +150,7 @@ def main(args):
     config = {
         'smoke_test_size': 200,  # Length of training set. 0 for all reviews.
         'training_dim': 200,     # Number of tokens (words) to put into each review.
+        'vocab_size': 7000,      # Vocabulary size
         'epochs': 4,
         'output_size': 1,
         'embedding_dim': 400,
