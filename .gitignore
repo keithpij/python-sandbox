@@ -1,6 +1,8 @@
 # Internet movie database for sentiment analysis.
 /ml/ray-sgd/aclImdb/*
 /ml/ray-sgd/*.pt
+/ml/raysgd/aclImdb/*
+/ml/raysgd/*.pt
 
 # Virtual environments
 .venv/
