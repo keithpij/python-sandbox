@@ -1,5 +1,5 @@
 '''
-Simply Pytorch example.
+Simple Pytorch example.
 '''
 import argparse
 import time

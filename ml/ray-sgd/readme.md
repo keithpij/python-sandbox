@@ -13,3 +13,8 @@ On Windows use:
 To deactivate:
     deactivate
 
+Download the Large Movie Review Dataset:
+    https://ai.stanford.edu/~amaas/data/sentiment/
+
+
+Unzip the downloaded tar.gz file and move the aclImdb folder to the folder containing this code.

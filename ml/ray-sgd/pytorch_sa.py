@@ -11,7 +11,7 @@ from ray.util.sgd import TorchTrainer
 import torch
 import torch.nn as nn
 
-from sa_training_operator import SATrainingOperator
+from pytorch_operator import SATrainingOperator
 import pytorch_creators as cr
 
 
