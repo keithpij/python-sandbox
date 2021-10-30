@@ -72,7 +72,7 @@ def loss_creator():
     return nn.MSELoss()  # this is for regression mean squared loss
 
 
-def train_local(config):
+def train_local_old(config):
     '''
     This function will train the model locally on a single CPU.
     '''
@@ -135,7 +135,10 @@ def validate(dataloader, model, loss_fn):
     return result
 
 
-def train_func(config):
+def train_local(config):
+    '''
+    This function will be run on a remote worker.
+    '''
     data_size = config.get("data_size", 1000)
     val_size = config.get("val_size", 400)
     batch_size = config.get("batch_size", 32)
@@ -143,7 +146,45 @@ def train_func(config):
     lr = config.get("lr", 1e-2)
     epochs = config.get("epochs", 3)
 
-    print('train_func called.')
+    train_dataset = LinearDataset(2, 5, size=data_size)
+    val_dataset = LinearDataset(2, 5, size=val_size)
+
+    train_loader = torch.utils.data.DataLoader(
+        train_dataset,
+        batch_size=batch_size)
+
+    validation_loader = torch.utils.data.DataLoader(
+        val_dataset,
+        batch_size=batch_size)
+
+    # create default process group
+    model = nn.Linear(1, hidden_size)
+
+    loss_fn = nn.MSELoss()
+    optimizer = torch.optim.SGD(model.parameters(), lr=lr)
+
+    results = []
+
+    for _ in range(epochs):
+        train(train_loader, model, loss_fn, optimizer)
+        result = validate(validation_loader, model, loss_fn)
+        results.append(result)
+
+    #torch.save(model, 'linear.pt')
+    return results
+
+
+def train_remote(config):
+    '''
+    This function will be run on a remote worker.
+    '''
+    data_size = config.get("data_size", 1000)
+    val_size = config.get("val_size", 400)
+    batch_size = config.get("batch_size", 32)
+    hidden_size = config.get("hidden_size", 1)
+    lr = config.get("lr", 1e-2)
+    epochs = config.get("epochs", 3)
+
     train_dataset = LinearDataset(2, 5, size=data_size)
     val_dataset = LinearDataset(2, 5, size=val_size)
 
@@ -183,7 +224,7 @@ def train_distributed(config, num_workers=1, use_gpu=False):
     start_time = time.time()
     trainer.start()
     results = trainer.run(
-        train_func,
+        train_remote,
         config)
 
     duration = time.time() - start_time
