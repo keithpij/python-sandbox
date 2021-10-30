@@ -125,7 +125,7 @@ def predict(model, predict_value):
     print(output)
 
 
-def main(config):
+def main(args):
     '''
     Main CLI entry point.
     '''

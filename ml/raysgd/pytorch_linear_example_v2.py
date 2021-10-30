@@ -5,9 +5,11 @@ import argparse
 import time
 
 import numpy as np
+import ray
 import ray.util.sgd.v2 as sgd
 from ray.util.sgd.v2 import Trainer, TorchConfig
 from ray.util.sgd.v2.callbacks import JsonLoggerCallback, TBXLoggerCallback
+import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import DistributedSampler
 import torch
@@ -63,14 +65,6 @@ def optimizer_creator(model, config):
 
 
 def scheduler_creator(optimizer, config):
-    """Returns a learning rate scheduler wrapping the optimizer.
-
-    You will need to set ``TorchTrainer(scheduler_step_freq="epoch")``
-    for the scheduler to be incremented correctly.
-
-    If using a scheduler for validation loss, be sure to call
-    ``trainer.update_scheduler(validation_loss)``.
-    """
     return torch.optim.lr_scheduler.StepLR(optimizer, step_size=config.get("step_size", 5), gamma=config.get("gamma", 0.9))
 
 
@@ -116,6 +110,97 @@ def train_local(config):
     return model, duration
 
 
+def train(dataloader, model, loss_fn, optimizer):
+    for X, y in dataloader:
+        # Compute prediction error
+        pred = model(X)
+        loss = loss_fn(pred, y)
+
+        # Backpropagation
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+
+
+def validate(dataloader, model, loss_fn):
+    num_batches = len(dataloader)
+    model.eval()
+    loss = 0
+    with torch.no_grad():
+        for X, y in dataloader:
+            pred = model(X)
+            loss += loss_fn(pred, y).item()
+    loss /= num_batches
+    result = {"model": model.state_dict(), "loss": loss}
+    return result
+
+
+def train_func(config):
+    data_size = config.get("data_size", 1000)
+    val_size = config.get("val_size", 400)
+    batch_size = config.get("batch_size", 32)
+    hidden_size = config.get("hidden_size", 1)
+    lr = config.get("lr", 1e-2)
+    epochs = config.get("epochs", 3)
+
+    print('train_func called.')
+    train_dataset = LinearDataset(2, 5, size=data_size)
+    val_dataset = LinearDataset(2, 5, size=val_size)
+
+    train_loader = torch.utils.data.DataLoader(
+        train_dataset,
+        batch_size=batch_size,
+        sampler=DistributedSampler(train_dataset))
+
+    validation_loader = torch.utils.data.DataLoader(
+        val_dataset,
+        batch_size=batch_size,
+        sampler=DistributedSampler(val_dataset))
+
+    # create default process group
+    model = nn.Linear(1, hidden_size)
+    model = DistributedDataParallel(model)
+
+    loss_fn = nn.MSELoss()
+    optimizer = torch.optim.SGD(model.parameters(), lr=lr)
+
+    results = []
+
+    for _ in range(epochs):
+        train(train_loader, model, loss_fn, optimizer)
+        result = validate(validation_loader, model, loss_fn)
+        sgd.report(**result)
+        results.append(result)
+
+    #torch.save(model, 'linear.pt')
+    return results
+
+
+def train_distributed(config, num_workers=1, use_gpu=False):
+
+    trainer = Trainer(TorchConfig(backend="gloo"), num_workers=num_workers)
+
+    start_time = time.time()
+    trainer.start()
+    results = trainer.run(
+        train_func,
+        config)
+
+    duration = time.time() - start_time
+
+    trainer.shutdown()
+    
+    for result in results:
+        print(result)
+
+    #model = torch.load('linear.pt')
+    #print(type(model))
+
+    print(results)
+
+    return duration 
+
+
 def predict(model, predict_value):
     '''
     Make a prediction based on the model.
@@ -127,7 +212,7 @@ def predict(model, predict_value):
     print(output)
 
 
-def main(config):
+def main(args):
     '''
     Main CLI entry point.
     '''
@@ -143,46 +228,13 @@ def main(config):
     }
 
     if args.distribute:
-        model, duration = train_distributed(config, num_workers=4)
+        ray.init(num_cpus=4)
+        duration = train_distributed(config, num_workers=4)
     else:
         model, duration = train_local(config)
     print('Total elapsed training time: ', duration)
-    print(type(model))
 
-    predict(model, args.predict_value)
-
-
-def train_distributed(config, num_workers=1, use_gpu=False):
-
-    CustomTrainingOperator = TrainingOperator.from_creators(
-        model_creator=model_creator, optimizer_creator=optimizer_creator,
-        data_creator=data_creator, scheduler_creator=scheduler_creator,
-        loss_creator=nn.MSELoss)
-
-    torch_trainer = TorchTrainer(
-        training_operator_cls=CustomTrainingOperator,
-        num_workers=num_workers,
-        use_gpu=use_gpu,
-        config=config,
-        backend="gloo",
-        scheduler_step_freq="epoch")
-
-    epochs = config.get('epochs', 4)
-
-    start_time = time.time()
-    for i in range(epochs):
-        stats = torch_trainer.train()
-        print(stats)
-    duration = time.time() - start_time
-
-    print(torch_trainer.validate())
-
-    # If using Ray Client, make sure to force model onto CPU.
-    model = torch_trainer.get_model(to_cpu=ray.util.client.ray.is_connected())
-    print("Trained weight: % .5f, Bias: % .5f" % (
-        model.weight.item(), model.bias.item()))
-    torch_trainer.shutdown()
-    return model, duration
+    #predict(model, args.predict_value)
 
 
 if __name__ == "__main__":
