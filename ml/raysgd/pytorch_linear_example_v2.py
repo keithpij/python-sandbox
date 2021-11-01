@@ -34,82 +34,6 @@ class LinearDataset(torch.utils.data.Dataset):
         return len(self.x)
 
 
-def data_creator(config):
-    '''
-    Creates and returns a training dataloader and a validation dataloader.
-    '''
-    train_dataset = LinearDataset(2, 5, size=config.get("data_size", 1000))
-    train_loader = torch.utils.data.DataLoader(
-        train_dataset,
-        batch_size=config.get("batch_size", 32),
-    )
-
-    val_dataset = LinearDataset(2, 5, size=config.get("val_size", 400))
-    validation_loader = torch.utils.data.DataLoader(
-        val_dataset,
-        batch_size=config.get("batch_size", 32))
-
-    return train_loader, validation_loader
-
-
-def model_creator(config):
-    """Returns a torch.nn.Module object."""
-    return nn.Linear(1, config.get("hidden_size", 1))
-
-
-def optimizer_creator(model, config):
-    '''
-    Returns optimizer defined upon the model parameters.
-    '''
-    return torch.optim.SGD(model.parameters(), lr=config.get("lr", 1e-2))
-
-
-def scheduler_creator(optimizer, config):
-    return torch.optim.lr_scheduler.StepLR(optimizer, step_size=config.get("step_size", 5), gamma=config.get("gamma", 0.9))
-
-
-def loss_creator():
-    return nn.MSELoss()  # this is for regression mean squared loss
-
-
-def train_local_old(config):
-    '''
-    This function will train the model locally on a single CPU.
-    '''
-    train_loader, validation_loader = data_creator(config)
-    model = model_creator(config)
-    loss_func = loss_creator()
-    optimizer = optimizer_creator(model, config)
-    scheduler = scheduler_creator(optimizer, config)
-
-    epochs = config.get('epochs', 4)
-    start_time = time.time()
-    for current_epoch in range(epochs):
-        print('Epoch: ', current_epoch+1)
-        print('Weight: % .5f, Bias: % .5f' % (model.weight.item(), model.bias.item()))
-        print('Weight gradient:', model.weight.grad)
-        print('Bias gradient: ', model.bias.grad)
-
-        for step, (batch_x, batch_y) in enumerate(train_loader): # for each training step
-
-            prediction = model(batch_x)     # input x and predict based on x
-
-            loss = loss_func(prediction, batch_y)     # must be (1. nn output, 2. target)
-
-            optimizer.zero_grad()   # clear gradients for next train
-            loss.backward()         # backpropagation, compute gradients
-            optimizer.step()        # apply gradients
-
-        scheduler.step()
-        print(f'Epoch {current_epoch+1}, Training loss: {loss.item():.4f}')
-        print('\n')
-
-    duration = time.time() - start_time
-    print('Final weight: % .5f, Final bias: % .5f' % (model.weight.item(), model.bias.item()))
-
-    return model, duration
-
-
 def train(dataloader, model, loss_fn, optimizer):
     for X, y in dataloader:
         # Compute prediction error
@@ -136,9 +60,8 @@ def validate(dataloader, model, loss_fn):
 
 
 def train_local(config):
-    '''
-    This function will be run on a remote worker.
-    '''
+    start_time = time.time()
+
     data_size = config.get("data_size", 1000)
     val_size = config.get("val_size", 400)
     batch_size = config.get("batch_size", 32)
@@ -170,8 +93,8 @@ def train_local(config):
         result = validate(validation_loader, model, loss_fn)
         results.append(result)
 
-    #torch.save(model, 'linear.pt')
-    return results
+    duration = time.time() - start_time
+    return duration, results
 
 
 def train_remote(config):
@@ -220,9 +143,9 @@ def train_remote(config):
 def train_distributed(config, num_workers=1, use_gpu=False):
 
     trainer = Trainer(TorchConfig(backend="gloo"), num_workers=num_workers)
+    trainer.start()
 
     start_time = time.time()
-    trainer.start()
     results = trainer.run(
         train_remote,
         config)
@@ -231,15 +154,10 @@ def train_distributed(config, num_workers=1, use_gpu=False):
 
     trainer.shutdown()
     
-    for result in results:
-        print(result)
-
     #model = torch.load('linear.pt')
     #print(type(model))
 
-    print(results)
-
-    return duration 
+    return duration, results 
 
 
 def predict(model, predict_value):
@@ -259,10 +177,10 @@ def main(args):
     '''
     config = {
         "epochs": 5,
-        "lr": 1e-2,  # used in optimizer_creator
-        "hidden_size": 1,  # used in model_creator
-        "batch_size": 4,  # used in data_creator
-        "data_size": 10000,
+        "lr": 1e-2,  # Used by the optimizer.
+        "hidden_size": 1,  # Used by the model.
+        "batch_size": 100,  # How the data is chunked up for training.
+        "data_size": 1000000,
         "val_size": 400,
         "gamma": 0.9,
         "step_size": 5
@@ -270,12 +188,17 @@ def main(args):
 
     if args.distribute:
         ray.init(num_cpus=4)
-        duration = train_distributed(config, num_workers=4)
+        duration, results = train_distributed(config, num_workers=4)
     else:
-        model, duration = train_local(config)
+        duration, results = train_local(config)
+    
     print('Total elapsed training time: ', duration)
+    
+    if args.verbose:
+        print(results)
 
-    #predict(model, args.predict_value)
+    #if args.predict:
+    #    predict(model, args.predict_value)
 
 
 if __name__ == "__main__":
@@ -285,6 +208,9 @@ if __name__ == "__main__":
                         help='Value for final prediction test.')
     parser.add_argument('-d', '--distribute',
                         help='Distribute the training task.',
+                        action='store_true')
+    parser.add_argument('-v', '--verbose',
+                        help='Verbose output (show results list).',
                         action='store_true')
 
     # Parse what was passed in. This will also check the arguments for you and produce
