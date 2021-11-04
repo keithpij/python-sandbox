@@ -11,7 +11,7 @@ from ray.util.sgd import TorchTrainer
 import torch
 import torch.nn as nn
 
-from sa_training_operator import SATrainingOperator
+from pytorch_operator import SATrainingOperator
 import pytorch_creators as cr
 
 
@@ -150,6 +150,7 @@ def main(args):
     config = {
         'smoke_test_size': 200,  # Length of training set. 0 for all reviews.
         'training_dim': 200,     # Number of tokens (words) to put into each review.
+        'vocab_size': 7000,      # Vocabulary size
         'epochs': 4,
         'output_size': 1,
         'embedding_dim': 400,
