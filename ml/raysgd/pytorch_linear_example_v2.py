@@ -34,9 +34,7 @@ class LinearDataset(torch.utils.data.Dataset):
 
 
 def train_func(dataloader, model, loss_fn, optimizer):
-    i = 0
     for X, y in dataloader:
-        i += 1
         # Compute prediction error
         pred = model(X)
         loss = loss_fn(pred, y)
@@ -138,7 +136,7 @@ def train_remote(config):
     return results
 
 
-def train_distributed(config, num_workers=1, use_gpu=False):
+def train_distributed(config, num_workers=1):
 
     trainer = Trainer(backend="torch", num_workers=num_workers)
     trainer.start()
