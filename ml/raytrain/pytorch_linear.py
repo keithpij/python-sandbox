@@ -138,6 +138,7 @@ def train_remote(config):
 
 def train_distributed(config, num_workers=1):
 
+    ray.init(num_cpus=4)
     trainer = Trainer(backend="torch", num_workers=num_workers)
     trainer.start()
 
@@ -181,7 +182,6 @@ def main(args):
     }
 
     if args.distribute:
-        ray.init(num_cpus=4)
         duration, results = train_distributed(config, num_workers=4)
     else:
         duration, results = train_local(config)

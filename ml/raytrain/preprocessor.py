@@ -137,3 +137,16 @@ def preprocess_data(config):
     training_dim = config.get('training_dim', 200)
     X = reshape(X, training_dim)
     return X, y
+
+
+def split_dataset(X, y, train_percent):
+    '''
+    Splits X, and y producing a training set that is the specified percentage.
+    The remaining rows will become a part of the validation set.
+    '''
+    length = len(X)
+    X_train = X[0:int(train_percent*length)]
+    y_train = y[0:int(train_percent*length)]
+    X_valid = X[int(train_percent*length):]
+    y_valid = y[int(train_percent*length):]
+    return X_train, y_train, X_valid, y_valid

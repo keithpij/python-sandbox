@@ -12,7 +12,7 @@ import ray.train as train
 from ray.train import Trainer
 from ray.train.callbacks import JsonLoggerCallback, TBXLoggerCallback
 from torch.nn.parallel import DistributedDataParallel
-from torch.utils.data import DataLoad, DistributedSampler, TensorDataset
+from torch.utils.data import DataLoader, DistributedSampler, TensorDataset
 import torch
 import torch.nn as nn
 
@@ -76,29 +76,33 @@ class SentimentLSTM(nn.Module):
         return sig_out, hidden
 
 
-    def init_hidden(self, batch_size, train_on_gpu=False):
-        ''' Initializes hidden state '''
-        # Create two new tensors with sizes n_layers x batch_size x hidden_dim,
-        # initialized to zero, for hidden state and cell state of LSTM
-        weight = next(self.parameters()).data
+def init_hidden(model, config, train_on_gpu=False):
+    ''' Initializes hidden state '''
+    # Create two new tensors with sizes n_layers x batch_size x hidden_dim,
+    # initialized to zero, for hidden state and cell state of LSTM
+    hidden_dim = config.get('hidden_dim') #256
+    n_layers = config.get('n_layers') #2
+    batch_size = config.get('batch_size')
 
-        if train_on_gpu:
-            hidden = (weight.new(self.n_layers, batch_size, self.hidden_dim).zero_().cuda(),
-                  weight.new(self.n_layers, batch_size, self.hidden_dim).zero_().cuda())
-        else:
-            hidden = (weight.new(self.n_layers, batch_size, self.hidden_dim).zero_(),
-                      weight.new(self.n_layers, batch_size, self.hidden_dim).zero_())
+    weight = next(model.parameters()).data
 
-        return hidden
+    if train_on_gpu:
+        hidden = (weight.new(n_layers, batch_size, hidden_dim).zero_().cuda(),
+                weight.new(n_layers, batch_size, hidden_dim).zero_().cuda())
+    else:
+        hidden = (weight.new(n_layers, batch_size, hidden_dim).zero_(),
+                    weight.new(n_layers, batch_size, hidden_dim).zero_())
+
+    return hidden
 
 
-def train_func(dataloader, model, loss_fn, optimizer, batch_size):
+def train_func(dataloader, model, loss_fn, optimizer, config):
     '''
     This function contains the batch loop. It is used to train
     a model locally and remotely.
     '''
     # initialize hidden state
-    h = model.init_hidden(batch_size)
+    h = init_hidden(model, config)
     clip = 5 # used for gradient clipping
 
     # batch loop
@@ -143,7 +147,7 @@ def training_setup(config):
     #analyze_length(X_valid)
 
     # Split to create a validation set.
-    X_train, y_train, X_valid, y_valid = split(X, y, 0.8)
+    X_train, y_train, X_valid, y_valid = pre.split_dataset(X, y, 0.8)
 
     # Tensor datasets
     train_dataset = TensorDataset(torch.from_numpy(np.array(X_train)), torch.from_numpy(np.array(y_train)))
@@ -165,7 +169,6 @@ def train_local(config):
 
     train_dataset, val_dataset, model, loss_fn, optimizer = training_setup(config)
 
-    train_loader, _ = cr.data_creator(config)
     batch_size = config.get('batch_size')
     epochs = config.get('epochs')
 
@@ -179,39 +182,65 @@ def train_local(config):
 
     # epoch loop
     for _ in range(epochs):
-        train_func(train_loader, model, loss_fn, optimizer, batch_size)
+        train_func(train_loader, model, loss_fn, optimizer, config)
 
     duration = time.time() - start_time
     return model, duration
 
 
-def train_distributed(config, num_workers=1, use_gpu=False):
+def train_remote(config):
+    '''
+    This function will be run on a remote worker.
+    '''
+    train_dataset, val_dataset, model, loss_fn, optimizer = training_setup(config)
 
-    ray.init()
+    batch_size = config.get("batch_size", 32)
+    epochs = config.get("epochs", 3)
 
-    torch_trainer = TorchTrainer(
-        training_operator_cls=SATrainingOperator,
-        num_workers=num_workers,
-        use_gpu=use_gpu,
-        config=config,
-        backend="gloo",
-        scheduler_step_freq="epoch")
+    train_loader = torch.utils.data.DataLoader(
+        train_dataset,
+        batch_size=batch_size,
+        sampler=DistributedSampler(train_dataset))
 
-    epochs = config.get('epochs', 4)
+    validation_loader = torch.utils.data.DataLoader(
+        val_dataset,
+        batch_size=batch_size,
+        sampler=DistributedSampler(val_dataset))
 
-    print('Timer started.')
-    start_time = time.time()
+    # Create a new model for distributed training.
+    model = DistributedDataParallel(model)
+
+    # epoch loop
+    results = []
     for _ in range(epochs):
-        stats = torch_trainer.train()
-        print(stats)
+        train_func(train_loader, model, loss_fn, optimizer, config)
+        #result = validate(validation_loader, model, loss_fn)
+        #train.report(**result)
+        #results.append(result)
+
+    #torch.save(model, 'linear.pt')
+    #return results
+
+
+def train_distributed(config, num_workers=1):
+
+    ray.init(num_cpus=4)
+    trainer = Trainer(backend="torch", num_workers=num_workers)
+    trainer.start()
+
+    start_time = time.time()
+    results = trainer.run(
+        train_remote,
+        config)
+
     duration = time.time() - start_time
 
-    #torch_trainer.validate()
+    trainer.shutdown()
+    
+    #model = torch.load('linear.pt')
+    #print(type(model))
 
-    # If using Ray Client, make sure to force model onto CPU.
-    model = torch_trainer.get_model(to_cpu=ray.util.client.ray.is_connected())
-    torch_trainer.shutdown()
-    return model, duration
+    return None, duration
 
 
 def save_model(model):
@@ -227,7 +256,7 @@ def main(args):
 
     # Configuration
     config = {
-        'smoke_test_size': 200,  # Length of training set. 0 for all reviews.
+        'smoke_test_size': 0,  # Length of training set. 0 for all reviews.
         'training_dim': 200,     # Number of tokens (words) to put into each review.
         'vocab_size': 7000,      # Vocabulary size
         'epochs': 4,
