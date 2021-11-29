@@ -96,14 +96,14 @@ def init_hidden(model, config, train_on_gpu=False):
     return hidden
 
 
-def train_func(dataloader, model, loss_fn, optimizer, config):
+def train_batches(dataloader, model, loss_fn, optimizer, config):
     '''
     This function contains the batch loop. It is used to train
     a model locally and remotely.
     '''
     # initialize hidden state
     h = init_hidden(model, config)
-    clip = 5 # used for gradient clipping
+    clip = config.get('grad_clip') # used for gradient clipping
 
     # batch loop
     for inputs, labels in dataloader:
@@ -136,8 +136,6 @@ def training_setup(config):
     embedding_dim = config.get('embedding_dim') #400
     hidden_dim = config.get('hidden_dim') #256
     n_layers = config.get('n_layers') #2
-    data_size = config.get("data_size", 1000)
-    val_size = config.get("val_size", 400)
     lr = config.get("lr", 1e-2)
 
     X, y = pre.preprocess_data(config)
@@ -161,7 +159,7 @@ def training_setup(config):
     return train_dataset, val_dataset, model, loss_fn, optimizer
 
 
-def train_local(config):
+def train_epochs_local(config):
     '''
     This function trains a model locally. It contains the epoch loop.
     '''
@@ -182,20 +180,20 @@ def train_local(config):
 
     # epoch loop
     for _ in range(epochs):
-        train_func(train_loader, model, loss_fn, optimizer, config)
+        train_batches(train_loader, model, loss_fn, optimizer, config)
 
     duration = time.time() - start_time
     return model, duration
 
 
-def train_remote(config):
+def train_epochs_remote(config):
     '''
-    This function will be run on a remote worker.
+    This function will be run on each remote worker. It contains the epoch loop.
     '''
     train_dataset, val_dataset, model, loss_fn, optimizer = training_setup(config)
 
-    batch_size = config.get("batch_size", 32)
-    epochs = config.get("epochs", 3)
+    batch_size = config.get('batch_size')
+    epochs = config.get('epochs')
 
     train_loader = torch.utils.data.DataLoader(
         train_dataset,
@@ -213,25 +211,28 @@ def train_remote(config):
     # epoch loop
     results = []
     for _ in range(epochs):
-        train_func(train_loader, model, loss_fn, optimizer, config)
+        train_batches(train_loader, model, loss_fn, optimizer, config)
         #result = validate(validation_loader, model, loss_fn)
         #train.report(**result)
         #results.append(result)
 
-    #torch.save(model, 'linear.pt')
     #return results
 
 
-def train_distributed(config, num_workers=1):
-
-    ray.init(num_cpus=4)
+def start_ray_train(config, num_workers=1):
+    '''
+    This function starts Ray Train. 
+    '''
     trainer = Trainer(backend="torch", num_workers=num_workers)
     trainer.start()
 
     start_time = time.time()
     results = trainer.run(
-        train_remote,
+        train_epochs_remote,
         config)
+
+    print('results:')
+    print(results)
 
     duration = time.time() - start_time
 
@@ -256,26 +257,28 @@ def main(args):
 
     # Configuration
     config = {
-        'smoke_test_size': 0,  # Length of training set. 0 for all reviews.
+        'smoke_test_size': 200,  # Length of training set. 0 for all reviews.
+        'epochs': 4,             # Total number of epochs
+        'batch_size': 10,        # Batch size for each epoch
         'training_dim': 200,     # Number of tokens (words) to put into each review.
         'vocab_size': 7000,      # Vocabulary size
-        'epochs': 4,
         'output_size': 1,
         'embedding_dim': 400,
         'hidden_dim': 256,
         'n_layers': 2,
         'lr': 0.001,
-        'batch_size': 10
+        'grad_clip': 5
     }
 
-    # Train
+    # Start Training
     if args.distribute:
-        model, duration = train_distributed(config, num_workers=4)
+        model, duration = start_ray_train(config, num_workers=4)
     else:
-        model, duration = train_local(config)
+        model, duration = train_epochs_local(config)
 
     # Report results
     print('Smoke Test size: {}'.format(config.get('smoke_test_size')))
+    print('Batch size: {}'.format(config.get('batch_size')))
     print('Total elapsed training time: ', duration)
     print(type(model))
     save_model(model)
