@@ -18,3 +18,6 @@ Download the Large Movie Review Dataset:
 
 
 Unzip the downloaded tar.gz file and move the aclImdb folder to the folder containing this code.
+
+For Python environments:
+pyenv shell ray
