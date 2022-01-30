@@ -13,6 +13,7 @@ import ray
 from ray.train import Trainer
 import tensorflow as tf
 from tensorflow import keras
+from ml.raytrain.pytorch_sa import train_epochs_remote
 
 import preprocessor as pre
 
@@ -62,7 +63,7 @@ def get_data(config):
     return train_dataset, valid_dataset
 
 
-def train_local(config):
+def train_epochs_local(config):
     '''
     Train model locally within a single process.
     '''
@@ -84,7 +85,7 @@ def train_local(config):
     return model, results, duration
 
 
-def train_func(config):
+def train_epochs_remote(config):
     per_worker_batch_size = config.get('batch_size')
     epochs = config.get('epochs')
     steps_per_epoch = config.get('steps_per_epoch', 70)
@@ -111,24 +112,26 @@ def train_func(config):
     return results
 
 
-def train_distributed(config, num_workers=4, use_gpu=False):
+def start_ray_train(config, num_workers=4, use_gpu=False):
     '''
     Train model using RayTrain.
-    num_replicas determines the number of processes.
+    num_workers determines the number of processes.
     Uses the same config as local training.
     '''
-    ray.init()
-
     trainer = Trainer(backend="tensorflow", num_workers=num_workers, use_gpu=use_gpu)
+    trainer.start()
 
     start_time = time.time()
-    trainer.start()
-    history = trainer.run(train_func=train_func, config=config)
+    results = trainer.run(train_epochs_remote, config=config)
+
+    print('results:')
+    print(results)
+
     duration = time.time() - start_time
 
     trainer.shutdown()
 
-    return None, history, duration
+    return None, duration
 
 
 def evaluate_model(model, X_test, y_test):
@@ -180,13 +183,16 @@ def main(args):
     # Configuration
     config = {
         'smoke_test_size': 200,  # Length of training set. 0 for all reviews.
+        'epochs': 4,             # Total number of epochs
+        'batch_size': 10,        # Batch size for each epoch
         'training_dim': 200,     # Number of tokens (words) to put into each review.
         'vocab_size': 7000,      # Vocabulary size
-        'epochs': 4,
         'output_size': 1,
         'embedding_dim': 400,
         'hidden_dim': 256,
-        'batch_size': 10,
+        'n_layers': 2,          # TODO: Figure out why this is not used.
+        'lr': 0.001,            # TODO: Figure out why this is not used.
+        'grad_clip': 5,         # TODO: Figure out why this is not used.
         'gpu_available': False
     }
 

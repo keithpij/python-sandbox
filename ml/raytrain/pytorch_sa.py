@@ -219,17 +219,17 @@ def train_epochs_remote(config):
     #return results
 
 
-def start_ray_train(config, num_workers=1):
+def start_ray_train(config, num_workers=4, use_gpu=False):
     '''
     This function starts Ray Train. 
+    num_workers determines the number of processes.
+    Uses the same config as local training.
     '''
-    trainer = Trainer(backend="torch", num_workers=num_workers)
+    trainer = Trainer(backend="torch", num_workers=num_workers, use_gpu=use_gpu)
     trainer.start()
 
     start_time = time.time()
-    results = trainer.run(
-        train_epochs_remote,
-        config)
+    results = trainer.run(train_epochs_remote, config)
 
     print('results:')
     print(results)
@@ -237,9 +237,6 @@ def start_ray_train(config, num_workers=1):
     duration = time.time() - start_time
 
     trainer.shutdown()
-    
-    #model = torch.load('linear.pt')
-    #print(type(model))
 
     return None, duration
 
@@ -254,7 +251,9 @@ def load_model():
 
 
 def main(args):
-
+    '''
+    Main entry point.
+    '''
     # Configuration
     config = {
         'smoke_test_size': 200,  # Length of training set. 0 for all reviews.

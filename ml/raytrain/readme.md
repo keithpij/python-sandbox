@@ -8,7 +8,7 @@ To activate your new virtual environment on a Mac or Linux based machine use the
     source .venv/bin/activate
 
 On Windows use:
-
+    source .venv/Scripts/activate
 
 To deactivate:
     deactivate
