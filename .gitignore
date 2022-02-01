@@ -3,6 +3,8 @@
 /ml/raysgd/*.pt
 /ml/raytrain/aclImdb/*
 /ml/raytrain/*.pt
+ml/fastai/animals
+ml/fastai/images
 
 # Virtual environments
 .venv/
