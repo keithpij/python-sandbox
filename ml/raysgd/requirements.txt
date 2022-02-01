@@ -1,8 +1,0 @@
-matplotlib
-numpy
-pandas
-ray
-ray[tune]
-ray[default]
-tensorflow
-torch
