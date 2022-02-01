@@ -6,10 +6,9 @@ import time
 
 import numpy as np
 import ray
-import ray.util.sgd.v2 as sgd
-from ray.util.sgd.v2 import Trainer, TorchConfig
-from ray.util.sgd.v2.callbacks import JsonLoggerCallback, TBXLoggerCallback
-import torch.distributed as dist
+import ray.train as train
+from ray.train import Trainer
+from ray.train.callbacks import JsonLoggerCallback, TBXLoggerCallback
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import DistributedSampler
 import torch
@@ -34,7 +33,7 @@ class LinearDataset(torch.utils.data.Dataset):
         return len(self.x)
 
 
-def train(dataloader, model, loss_fn, optimizer):
+def train_func(dataloader, model, loss_fn, optimizer):
     for X, y in dataloader:
         # Compute prediction error
         pred = model(X)
@@ -59,18 +58,32 @@ def validate(dataloader, model, loss_fn):
     return result
 
 
-def train_local(config):
-    start_time = time.time()
-
+def training_setup(config):
+    '''
+    This function will the datasets, model, loss function, and optimzer.
+    '''
     data_size = config.get("data_size", 1000)
     val_size = config.get("val_size", 400)
-    batch_size = config.get("batch_size", 32)
     hidden_size = config.get("hidden_size", 1)
     lr = config.get("lr", 1e-2)
-    epochs = config.get("epochs", 3)
 
     train_dataset = LinearDataset(2, 5, size=data_size)
     val_dataset = LinearDataset(2, 5, size=val_size)
+
+    model = nn.Linear(1, hidden_size)
+    loss_fn = nn.MSELoss()
+    optimizer = torch.optim.SGD(model.parameters(), lr=lr)
+
+    return train_dataset, val_dataset, model, loss_fn, optimizer
+
+
+def train_local(config):
+    start_time = time.time()
+
+    train_dataset, val_dataset, model, loss_fn, optimizer = training_setup(config)
+
+    batch_size = config.get("batch_size", 32)
+    epochs = config.get("epochs", 3)
 
     train_loader = torch.utils.data.DataLoader(
         train_dataset,
@@ -80,16 +93,9 @@ def train_local(config):
         val_dataset,
         batch_size=batch_size)
 
-    # create default process group
-    model = nn.Linear(1, hidden_size)
-
-    loss_fn = nn.MSELoss()
-    optimizer = torch.optim.SGD(model.parameters(), lr=lr)
-
     results = []
-
     for _ in range(epochs):
-        train(train_loader, model, loss_fn, optimizer)
+        train_func(train_loader, model, loss_fn, optimizer)
         result = validate(validation_loader, model, loss_fn)
         results.append(result)
 
@@ -101,15 +107,10 @@ def train_remote(config):
     '''
     This function will be run on a remote worker.
     '''
-    data_size = config.get("data_size", 1000)
-    val_size = config.get("val_size", 400)
-    batch_size = config.get("batch_size", 32)
-    hidden_size = config.get("hidden_size", 1)
-    lr = config.get("lr", 1e-2)
-    epochs = config.get("epochs", 3)
+    train_dataset, val_dataset, model, loss_fn, optimizer = training_setup(config)
 
-    train_dataset = LinearDataset(2, 5, size=data_size)
-    val_dataset = LinearDataset(2, 5, size=val_size)
+    batch_size = config.get("batch_size", 32)
+    epochs = config.get("epochs", 3)
 
     train_loader = torch.utils.data.DataLoader(
         train_dataset,
@@ -121,28 +122,24 @@ def train_remote(config):
         batch_size=batch_size,
         sampler=DistributedSampler(val_dataset))
 
-    # create default process group
-    model = nn.Linear(1, hidden_size)
+    # Create a new model for distributed training.
     model = DistributedDataParallel(model)
 
-    loss_fn = nn.MSELoss()
-    optimizer = torch.optim.SGD(model.parameters(), lr=lr)
-
     results = []
-
     for _ in range(epochs):
-        train(train_loader, model, loss_fn, optimizer)
+        train_func(train_loader, model, loss_fn, optimizer)
         result = validate(validation_loader, model, loss_fn)
-        sgd.report(**result)
+        train.report(**result)
         results.append(result)
 
     #torch.save(model, 'linear.pt')
     return results
 
 
-def train_distributed(config, num_workers=1, use_gpu=False):
+def train_distributed(config, num_workers=1):
 
-    trainer = Trainer(TorchConfig(backend="gloo"), num_workers=num_workers)
+    ray.init(num_cpus=4)
+    trainer = Trainer(backend="torch", num_workers=num_workers)
     trainer.start()
 
     start_time = time.time()
@@ -179,15 +176,12 @@ def main(args):
         "epochs": 5,
         "lr": 1e-2,  # Used by the optimizer.
         "hidden_size": 1,  # Used by the model.
-        "batch_size": 100,  # How the data is chunked up for training.
+        "batch_size": 10000,  # How the data is chunked up for training.
         "data_size": 1000000,
-        "val_size": 400,
-        "gamma": 0.9,
-        "step_size": 5
+        "val_size": 400
     }
 
     if args.distribute:
-        ray.init(num_cpus=4)
         duration, results = train_distributed(config, num_workers=4)
     else:
         duration, results = train_local(config)
