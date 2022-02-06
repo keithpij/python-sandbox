@@ -131,7 +131,7 @@ def start_ray_train(config, num_workers=4, use_gpu=False):
 
     trainer.shutdown()
 
-    return None, duration
+    return None, results, duration
 
 
 def evaluate_model(model, X_test, y_test):
@@ -196,11 +196,11 @@ def main(args):
         'gpu_available': False
     }
 
-    # Train
+    # Start Training
     if args.distribute:
-        model, results, duration = train_distributed(config, num_workers=4)
+        model, results, duration = start_ray_train(config, num_workers=4)
     else:
-        model, results, duration = train_local(config)
+        model, results, duration = train_epochs_local(config)
 
     # Report results
     print('Smoke Test size: {}'.format(config.get('smoke_test_size')))
