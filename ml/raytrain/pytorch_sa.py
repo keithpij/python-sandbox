@@ -4,6 +4,7 @@ Trains an LSTM model locally (on a single process) and distributed using RaySGD 
 '''
 import argparse
 import os
+import threading
 import time
 
 import numpy as np
@@ -96,6 +97,38 @@ def init_hidden(model, config, train_on_gpu=False):
     return hidden
 
 
+def training_setup(config):
+    '''
+    This function will the datasets, model, loss function, and optimzer.
+    '''
+    vocab_size = config.get('vocab_size')
+    output_size = config.get('output_size')
+    embedding_dim = config.get('embedding_dim') #400
+    hidden_dim = config.get('hidden_dim') #256
+    n_layers = config.get('n_layers') #2
+    lr = config.get("lr", 1e-2)
+
+    X, y = pre.preprocess_data(config)
+
+    #print('Total number of reviews: ', len(X))
+    #analyze_length(X_train)
+    #analyze_length(X_valid)
+
+    # Split to create a validation set.
+    X_train, y_train, X_valid, y_valid = pre.split_dataset(X, y, 0.8)
+
+    # Tensor datasets
+    train_dataset = TensorDataset(torch.from_numpy(np.array(X_train)), torch.from_numpy(np.array(y_train)))
+    val_dataset = TensorDataset(torch.from_numpy(np.array(X_valid)), torch.from_numpy(np.array(y_valid)))
+
+    model = SentimentLSTM(vocab_size, output_size, embedding_dim, hidden_dim, n_layers)
+    
+    loss_fn = nn.BCELoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+
+    return train_dataset, val_dataset, model, loss_fn, optimizer
+
+
 def train_batches(dataloader, model, loss_fn, optimizer, config):
     '''
     This function contains the batch loop. It is used to train
@@ -127,36 +160,32 @@ def train_batches(dataloader, model, loss_fn, optimizer, config):
         optimizer.step()
 
 
-def training_setup(config):
-    '''
-    This function will the datasets, model, loss function, and optimzer.
-    '''
-    vocab_size = config.get('vocab_size')
-    output_size = config.get('output_size')
-    embedding_dim = config.get('embedding_dim') #400
-    hidden_dim = config.get('hidden_dim') #256
-    n_layers = config.get('n_layers') #2
-    lr = config.get("lr", 1e-2)
+def validate_epoch(dataloader, model, loss_fn):
+    num_batches = len(dataloader)
+    model.eval()
+    loss = 0
+    with torch.no_grad():
+        for inputs, labels in dataloader:
+            # Creating new variables for the hidden state, otherwise
+            # we'd backprop through the entire training history
+            h = tuple([each.data for each in h])
 
-    X, y = pre.preprocess_data(config)
+            # zero accumulated gradients
+            model.zero_grad()
 
-    #print('Total number of reviews: ', len(X))
-    #analyze_length(X_train)
-    #analyze_length(X_valid)
+            # get the output from the model
+            inputs = inputs.type(torch.LongTensor)
+            output, h = model(inputs, h)
 
-    # Split to create a validation set.
-    X_train, y_train, X_valid, y_valid = pre.split_dataset(X, y, 0.8)
+            # calculate the loss and perform backprop
+            loss += loss_fn(output.squeeze(), labels.float())
 
-    # Tensor datasets
-    train_dataset = TensorDataset(torch.from_numpy(np.array(X_train)), torch.from_numpy(np.array(y_train)))
-    val_dataset = TensorDataset(torch.from_numpy(np.array(X_valid)), torch.from_numpy(np.array(y_valid)))
+            #pred = model(inputs)
+            #loss += loss_fn(pred, labels).item()
 
-    model = SentimentLSTM(vocab_size, output_size, embedding_dim, hidden_dim, n_layers)
-    
-    loss_fn = nn.BCELoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
-
-    return train_dataset, val_dataset, model, loss_fn, optimizer
+    loss /= num_batches
+    result = {'thread_id': threading.current_thread().name, 'loss': loss}
+    return result
 
 
 def train_epochs_local(config):
@@ -205,18 +234,21 @@ def train_epochs_remote(config):
         batch_size=batch_size,
         sampler=DistributedSampler(val_dataset))
 
-    # Create a new model for distributed training.
-    model = DistributedDataParallel(model)
+    # Prepare the data and the model for distributed training.
+    train_loader = train.torch.prepare_data_loader(train_loader)
+    validation_loader = train.torch.prepare_data_loader(validation_loader)
+    model = train.torch.prepare_model(model)
+    #model = DistributedDataParallel(model)
 
     # epoch loop
     results = []
     for _ in range(epochs):
         train_batches(train_loader, model, loss_fn, optimizer, config)
-        #result = validate(validation_loader, model, loss_fn)
-        #train.report(**result)
-        #results.append(result)
+        result = validate_epoch(validation_loader, model, loss_fn)
+        train.report(**result)
+        results.append(result)
 
-    #return results
+    return results
 
 
 def start_ray_train(config, num_workers=4, use_gpu=False):
