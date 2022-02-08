@@ -190,7 +190,6 @@ def main(args):
         'hidden_dim': 256,
         'n_layers': 2,          # TODO: Figure out why this is not used.
         'lr': 0.001,            # TODO: Figure out why this is not used.
-        'grad_clip': 5,         # TODO: Figure out why this is not used.
         'gpu_available': False
     }
 

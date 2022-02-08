@@ -20,33 +20,37 @@ import torch.nn as nn
 import preprocessor as pre
 
 
+MODEL_FILE_PATH = os.path.join(os.getcwd(), 'lstm.pt')
+
+
 class SentimentLSTM(nn.Module):
     '''
     An LSTM is a type of RNN network the  that will be used to perform Sentiment analysis.
     '''
 
-    def __init__(self, vocab_size, output_size, embedding_dim, hidden_dim, n_layers, batch_size):
+    def __init__(self, vocab_size, output_size, embedding_dim, hidden_dim, n_layers, drop_prob=0.5):
         '''
         Initialize the model and set up the layers.
         '''
-        super(SentimentLSTM, self).__init__()
+        super().__init__()
 
         self.output_size = output_size
         self.n_layers = n_layers
         self.hidden_dim = hidden_dim
-        self.batch_size = batch_size
 
-        # layers
+        # embedding and LSTM layers
         self.embedding = nn.Embedding(vocab_size, embedding_dim)
-        self.lstm = nn.LSTM(embedding_dim, hidden_dim)
+        self.lstm = nn.LSTM(embedding_dim, hidden_dim, n_layers,
+                            dropout=drop_prob, batch_first=True)
 
-        self.hidden = self.init_hidden()
+        # dropout layer
+        self.dropout = nn.Dropout(0.3)
 
         # linear and sigmoid layers
         self.fcl = nn.Linear(hidden_dim, output_size)
         self.sig = nn.Sigmoid()
 
-    def forward(self, x):
+    def forward(self, x, hidden):
         '''
         Forward pass
         '''
@@ -54,15 +58,14 @@ class SentimentLSTM(nn.Module):
 
         # embeddings and lstm_out
         embeds = self.embedding(x)
-        
-        lstm_out, _ = self.lstm(embeds, self.hidden)
-        #lstm_out, _ = self.lstm(embeds.view(len(x), 1, -1))
+        lstm_out, hidden = self.lstm(embeds, hidden)
 
         # stack up lstm outputs
         lstm_out = lstm_out.contiguous().view(-1, self.hidden_dim)
 
-        # fully-connected layer
-        out = self.fcl(lstm_out)
+        # dropout and fully-connected layer
+        out = self.dropout(lstm_out)
+        out = self.fcl(out)
         # sigmoid function
         sig_out = self.sig(out)
 
@@ -71,19 +74,27 @@ class SentimentLSTM(nn.Module):
         sig_out = sig_out[:, -1] # get last batch of labels
 
         # return last sigmoid output and hidden state
-        return sig_out
+        return sig_out, hidden
 
-    def init_hidden(self, train_on_gpu=False):
-        ''' Initializes hidden state '''
-        # Create two new tensors with sizes n_layers x batch_size x hidden_dim,
-        # initialized to zero, for hidden state and cell state of LSTM
 
-        weight = next(self.parameters()).data
+def init_hidden(model, config, train_on_gpu=False):
+    ''' Initializes hidden state '''
+    # Create two new tensors with sizes n_layers x batch_size x hidden_dim,
+    # initialized to zero, for hidden state and cell state of LSTM
+    hidden_dim = config.get('hidden_dim') #256
+    n_layers = config.get('n_layers') #2
+    batch_size = config.get('batch_size')
 
-        hidden = (weight.new(self.n_layers, self.batch_size, self.hidden_dim).zero_(),
-                    weight.new(self.n_layers, self.batch_size, self.hidden_dim).zero_())
+    weight = next(model.parameters()).data
 
-        self.hidden = hidden
+    if train_on_gpu:
+        hidden = (weight.new(n_layers, batch_size, hidden_dim).zero_().cuda(),
+                weight.new(n_layers, batch_size, hidden_dim).zero_().cuda())
+    else:
+        hidden = (weight.new(n_layers, batch_size, hidden_dim).zero_(),
+                    weight.new(n_layers, batch_size, hidden_dim).zero_())
+
+    return hidden
 
 
 def training_setup(config):
@@ -96,7 +107,6 @@ def training_setup(config):
     hidden_dim = config.get('hidden_dim') #256
     n_layers = config.get('n_layers') #2
     lr = config.get("lr", 1e-2)
-    batch_size = config.get('batch_size')
 
     X, y = pre.preprocess_data(config)
 
@@ -106,13 +116,12 @@ def training_setup(config):
 
     # Split to create a validation set.
     X_train, y_train, X_valid, y_valid = pre.split_dataset(X, y, 0.8)
-    print(X_train[0:5])
 
     # Tensor datasets
     train_dataset = TensorDataset(torch.from_numpy(np.array(X_train)), torch.from_numpy(np.array(y_train)))
     val_dataset = TensorDataset(torch.from_numpy(np.array(X_valid)), torch.from_numpy(np.array(y_valid)))
 
-    model = SentimentLSTM(vocab_size, output_size, embedding_dim, hidden_dim, n_layers, batch_size)
+    model = SentimentLSTM(vocab_size, output_size, embedding_dim, hidden_dim, n_layers)
     
     loss_fn = nn.BCELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
@@ -125,19 +134,29 @@ def train_batches(dataloader, model, loss_fn, optimizer, config):
     This function contains the batch loop. It is used to train
     a model locally and remotely.
     '''
+    # initialize hidden state
+    h = init_hidden(model, config)
+    clip = config.get('grad_clip') # used for gradient clipping
 
     # batch loop
     for inputs, labels in dataloader:
+
+        # Creating new variables for the hidden state, otherwise
+        # we'd backprop through the entire training history
+        h = tuple([each.data for each in h])
+
         # zero accumulated gradients
         model.zero_grad()
 
         # get the output from the model
         inputs = inputs.type(torch.LongTensor)
-        output = model(inputs)
+        output, h = model(inputs, h)
 
-        # calculate the loss and perform back propagation
+        # calculate the loss and perform backprop
         loss = loss_fn(output.squeeze(), labels.float())
         loss.backward()
+        # clip_grad_norm helps prevent the exploding gradient problem in RNNs / LSTMs.
+        nn.utils.clip_grad_norm_(model.parameters(), clip)
         optimizer.step()
 
 
@@ -147,12 +166,16 @@ def validate_epoch(dataloader, model, loss_fn):
     loss = 0
     with torch.no_grad():
         for inputs, labels in dataloader:
+            # Creating new variables for the hidden state, otherwise
+            # we'd backprop through the entire training history
+            h = tuple([each.data for each in h])
+
             # zero accumulated gradients
             model.zero_grad()
 
             # get the output from the model
             inputs = inputs.type(torch.LongTensor)
-            output = model(inputs)
+            output, h = model(inputs, h)
 
             # calculate the loss and perform backprop
             loss += loss_fn(output.squeeze(), labels.float())
@@ -161,7 +184,7 @@ def validate_epoch(dataloader, model, loss_fn):
             #loss += loss_fn(pred, labels).item()
 
     loss /= num_batches
-    result = {"process_id": os.getpid(), "loss": loss}
+    result = {'thread_id': threading.current_thread().name, 'loss': loss}
     return result
 
 
@@ -185,14 +208,11 @@ def train_epochs_local(config):
         batch_size=batch_size)
 
     # epoch loop
-    results = []
     for _ in range(epochs):
         train_batches(train_loader, model, loss_fn, optimizer, config)
-        result = validate_epoch(validation_loader, model, loss_fn)
-        results.append(result)
 
     duration = time.time() - start_time
-    return model, results, duration
+    return model, duration
 
 
 def train_epochs_remote(config):
@@ -241,35 +261,25 @@ def start_ray_train(config, num_workers=4, use_gpu=False):
     trainer.start()
 
     start_time = time.time()
-    model = trainer.run(train_epochs_remote, config)
+    results = trainer.run(train_epochs_remote, config)
+
+    print('results:')
+    print(results)
 
     duration = time.time() - start_time
 
     trainer.shutdown()
 
-    return model, duration
+    return None, duration
 
 
-def save_model(model, file_name):
-    file_path = os.path.join(os.getcwd(), file_name)
-    torch.save(model, file_path)
+def save_model(model):
+    torch.save(model, MODEL_FILE_PATH)
 
 
-def load_model(file_name):
-    file_path = os.path.join(os.getcwd(), file_name)
-    model = torch.load(file_path)
+def load_model():
+    model = torch.load(MODEL_FILE_PATH)
     return model
-
-
-def predict(model, config, text):
-    '''
-    Make a prediction based on the model.
-    '''
-    tokens = pre.preprocess_text(config, text)
-    tensor_input = torch.from_numpy(np.array(tokens))
-
-    output = model(tensor_input)
-    print(output)
 
 
 def main(args):
@@ -288,27 +298,21 @@ def main(args):
         'hidden_dim': 256,
         'n_layers': 2,
         'lr': 0.001,
+        'grad_clip': 5
     }
-
-    if args.predict:
-        model = load_model('lstm.pt')
-        predict(model, config, args.predict)
-        return
 
     # Start Training
     if args.distribute:
-        results, duration = start_ray_train(config, num_workers=4)
-        #save_model(model, 'remote_sa_lstm.pt')
+        model, duration = start_ray_train(config, num_workers=4)
     else:
-        model, results, duration = train_epochs_local(config)
-        save_model(model, 'local_sa_lstm.pt')
+        model, duration = train_epochs_local(config)
 
     # Report results
     print('Smoke Test size: {}'.format(config.get('smoke_test_size')))
     print('Batch size: {}'.format(config.get('batch_size')))
     print('Total elapsed training time: ', duration)
-    #print(type(model))
-    print(results)
+    print(type(model))
+    save_model(model)
 
 
 if __name__ == "__main__":
@@ -317,8 +321,6 @@ if __name__ == "__main__":
     parser.add_argument('-d', '--distribute',
                         help='Distribute the training task.',
                         action='store_true')
-    parser.add_argument('-p', '--predict',
-                        help='Predict text sentiment.')
 
     # Parse what was passed in. This will also check the arguments for you and produce
     # a help message if something is wrong.

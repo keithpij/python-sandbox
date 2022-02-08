@@ -70,13 +70,22 @@ def create_tokens(X, vocab_size):
 def tokenize(X, mapping):
     entries_int = []
     for entry_text in X:
-        entry_int = []
-        for w in entry_text.split():
-            if w in mapping:
-                entry_int.append(mapping[w])
+        entry_int = tokenize_text(entry_text, mapping)
+        #entry_int = []
+        #for w in entry_text.split():
+        #    if w in mapping:
+        #        entry_int.append(mapping[w])
         #entry_int = [mapping[w] for w in entry_text.split()]
         entries_int.append(entry_int)
     return entries_int
+
+
+def tokenize_text(text, mapping):
+    entry_int = []
+    for w in text.split():
+        if w in mapping:
+            entry_int.append(mapping[w])
+    return entry_int
 
 
 def analyze_length(X):
@@ -100,14 +109,14 @@ def reshape(X, seq_length):
     Each entry is padded with 0's if its number of features are less than seq_lenth.
     If the number of features are greater than seq_lenth then they are truncated to seq_lenth.
     '''
-    features = np.zeros((len(X), seq_length), dtype = int)
+    features = np.zeros((len(X), seq_length), dtype=int)
 
     for i, review in enumerate(X):
         review_len = len(review)
 
         if review_len <= seq_length:
-            zeroes = list(np.zeros(seq_length-review_len))
-            new = zeroes + review
+            zeroes = list(np.zeros(seq_length-review_len, dtype=int))
+            new = review + zeroes
         elif review_len > seq_length:
             new = review[0:seq_length]
 
@@ -137,6 +146,30 @@ def preprocess_data(config):
     training_dim = config.get('training_dim', 200)
     X = reshape(X, training_dim)
     return X, y
+
+
+def preprocess_text(config, text):
+    X, _ = get_all_data()
+
+    vocab_size = config.get('vocab_size')
+    training_dim = config.get('training_dim', 200)
+
+    word_to_int_mapping = create_tokens(X, vocab_size)
+    print(len(word_to_int_mapping))
+
+    text = clean_entry(text)
+    tokens = tokenize_text(text, word_to_int_mapping)
+
+    num_tokens = len(tokens)
+
+    if num_tokens <= training_dim:
+        zeroes = list(np.zeros(training_dim-num_tokens, dtype=int))
+        new = tokens + zeroes
+    elif num_tokens > training_dim:
+        new = tokens[0:training_dim]
+    tokens = new    
+
+    return [tokens]
 
 
 def split_dataset(X, y, train_percent):
