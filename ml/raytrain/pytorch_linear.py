@@ -2,7 +2,9 @@
 Simple Pytorch example.
 '''
 import argparse
+import os
 import time
+from urllib import response
 
 import numpy as np
 import ray
@@ -33,7 +35,7 @@ class LinearDataset(torch.utils.data.Dataset):
         return len(self.x)
 
 
-def train_func(dataloader, model, loss_fn, optimizer):
+def train_batches(dataloader, model, loss_fn, optimizer):
     for X, y in dataloader:
         # Compute prediction error
         pred = model(X)
@@ -45,7 +47,7 @@ def train_func(dataloader, model, loss_fn, optimizer):
         optimizer.step()
 
 
-def validate(dataloader, model, loss_fn):
+def validate_epoch(dataloader, model, loss_fn):
     num_batches = len(dataloader)
     model.eval()
     loss = 0
@@ -54,7 +56,7 @@ def validate(dataloader, model, loss_fn):
             pred = model(X)
             loss += loss_fn(pred, y).item()
     loss /= num_batches
-    result = {"model": model.state_dict(), "loss": loss}
+    result = {'process_id': os.getpid(), 'loss': loss}
     return result
 
 
@@ -77,7 +79,7 @@ def training_setup(config):
     return train_dataset, val_dataset, model, loss_fn, optimizer
 
 
-def train_local(config):
+def train_epochs_local(config):
     start_time = time.time()
 
     train_dataset, val_dataset, model, loss_fn, optimizer = training_setup(config)
@@ -94,16 +96,17 @@ def train_local(config):
         batch_size=batch_size)
 
     results = []
-    for _ in range(epochs):
-        train_func(train_loader, model, loss_fn, optimizer)
-        result = validate(validation_loader, model, loss_fn)
+    for epoch in range(epochs):
+        train_batches(train_loader, model, loss_fn, optimizer)
+        result = validate_epoch(validation_loader, model, loss_fn)
+        result['epoch'] = epoch + 1
         results.append(result)
 
     duration = time.time() - start_time
-    return duration, results
+    return model.state_dict(), results, duration
 
 
-def train_remote(config):
+def train_epochs_remote(config):
     '''
     This function will be run on a remote worker.
     '''
@@ -122,46 +125,65 @@ def train_remote(config):
         batch_size=batch_size,
         sampler=DistributedSampler(val_dataset))
 
-    # Create a new model for distributed training.
-    model = DistributedDataParallel(model)
+    # Prepare the data and the model for distributed training.
+    train_loader = train.torch.prepare_data_loader(train_loader)
+    validation_loader = train.torch.prepare_data_loader(validation_loader)
+    model = train.torch.prepare_model(model)
+    #model = DistributedDataParallel(model)
 
     results = []
-    for _ in range(epochs):
-        train_func(train_loader, model, loss_fn, optimizer)
-        result = validate(validation_loader, model, loss_fn)
+    for epoch in range(epochs):
+        train_batches(train_loader, model, loss_fn, optimizer)
+        result = validate_epoch(validation_loader, model, loss_fn)
+        result['epoch'] = epoch + 1
         train.report(**result)
         results.append(result)
 
-    #torch.save(model, 'linear.pt')
-    return results
+    return model.state_dict(), results
 
 
-def train_distributed(config, num_workers=1):
-
+def start_ray_train(config, num_workers=1):
+    '''
+    This function will setup the Ray Trainer which in turn will create the specified
+    number of workers.
+    Once the Trainer is created it is run and send the train_remote_epochs function.
+    '''
     ray.init(num_cpus=4)
     trainer = Trainer(backend="torch", num_workers=num_workers)
     trainer.start()
 
     start_time = time.time()
-    results = trainer.run(
-        train_remote,
-        config)
-
+    response = trainer.run(train_epochs_remote, config)
     duration = time.time() - start_time
 
     trainer.shutdown()
-    
-    #model = torch.load('linear.pt')
-    #print(type(model))
 
-    return duration, results 
+    model_state_dict = response[0][0]
+    results = []
+    for (_, result) in response:
+        results.append(result)
+
+    return model_state_dict, results, duration
 
 
-def predict(model, predict_value):
+def save_model(model_state_dict, file_name):
+    file_path = os.path.join(os.getcwd(), file_name)
+    torch.save(model_state_dict, file_path)
+
+
+def load_model(file_name, config):
+    file_path = os.path.join(os.getcwd(), file_name)
+    hidden_size = config.get("hidden_size", 1)
+    model = nn.Linear(1, hidden_size)
+    model.load_state_dict(torch.load(file_path))
+    return model
+
+
+def predict(model, input):
     '''
     Make a prediction based on the model.
     '''
-    tensor_input = torch.Tensor([float(predict_value)])
+    tensor_input = torch.Tensor([float(input)])
     print(tensor_input)
 
     output = model(tensor_input)
@@ -176,33 +198,43 @@ def main(args):
         "epochs": 5,
         "lr": 1e-2,  # Used by the optimizer.
         "hidden_size": 1,  # Used by the model.
-        "batch_size": 10000,  # How the data is chunked up for training.
+        "batch_size": 1000,  # How the data is chunked up for training.
         "data_size": 1000000,
         "val_size": 400
     }
 
+    if args.predict:
+        model = load_model(args.model, config)
+        predict(model, args.predict)
+        return
+
     if args.distribute:
-        duration, results = train_distributed(config, num_workers=4)
-    else:
-        duration, results = train_local(config)
-    
+        model_state_dict, results, duration = start_ray_train(config, num_workers=4)
+        save_model(model_state_dict, 'linear_distributed.pt')
+
+    if args.local:
+        model_state_dict, results, duration = train_epochs_local(config)
+        save_model(model_state_dict, 'linear_local.pt')
+
     print('Total elapsed training time: ', duration)
     
     if args.verbose:
         print(results)
 
-    #if args.predict:
-    #    predict(model, args.predict_value)
-
 
 if __name__ == "__main__":
     # Setup all the CLI arguments for this module.
     parser = argparse.ArgumentParser()
-    parser.add_argument('-p', '--predict_value',
-                        help='Value for final prediction test.')
     parser.add_argument('-d', '--distribute',
-                        help='Distribute the training task.',
+                        help='Train model using distributed workers.',
                         action='store_true')
+    parser.add_argument('-l', '--local',
+                        help='Train model locally.',
+                        action='store_true')
+    parser.add_argument('-m', '--model',
+                        help='Pre-trained model to load.')
+    parser.add_argument('-p', '--predict',
+                        help='Make a prediction using a pre-trained model.')
     parser.add_argument('-v', '--verbose',
                         help='Verbose output (show results list).',
                         action='store_true')

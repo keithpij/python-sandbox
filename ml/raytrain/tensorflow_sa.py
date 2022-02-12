@@ -16,10 +16,7 @@ from tensorflow import keras
 import preprocessor as pre
 
 
-MODEL_FOLDER = os.path.join(os.getcwd(), 'keras')
-
-
-def get_model(config):
+def get_model_old(config):
     '''
     Creator that returns a LSTM model using Keras.
     Note: Compile is called here.
@@ -34,6 +31,28 @@ def get_model(config):
         keras.layers.GRU(hidden_dim, return_sequences=True),
         keras.layers.GRU(hidden_dim),
         keras.layers.Dense(1, activation="sigmoid")
+    ])
+
+    model.compile(loss="binary_crossentropy", optimizer="adam", metrics=["accuracy"])
+
+    return model
+
+
+def get_model(config):
+    '''
+    Creator that returns a LSTM model using Keras.
+    Note: Compile is called here.
+    '''
+    from tensorflow import keras
+    vocab_size = config.get('vocab_size')
+    embedding_dim = config.get('embedding_dim')
+    hidden_dim = config.get('hidden_dim')
+
+    model = tf.keras.Sequential([
+        tf.keras.layers.Embedding(input_dim=vocab_size,output_dim=64),
+        tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(64)),
+        tf.keras.layers.Dense(64, activation='relu'),
+        tf.keras.layers.Dense(1)
     ])
 
     model.compile(loss="binary_crossentropy", optimizer="adam", metrics=["accuracy"])
@@ -77,8 +96,8 @@ def train_epochs_local(config):
 
     start_time = time.time()
     history = model.fit(train_dataset, batch_size=batch_size, epochs=epochs)
-
     duration = time.time() - start_time
+
     results = history.history
     return model, results, duration
 
@@ -140,38 +159,30 @@ def evaluate_model(model, X_test, y_test):
     return score
 
 
-def save_model(model):
+def save_model(model, file_name):
     '''
     Save the model for future use.
     '''
-    keras.models.save_model(model, MODEL_FOLDER)
+    model.save(file_name)
 
 
-def load_model():
+def load_model(file_name):
     '''
     Load a previously trained model.
     '''
-    return keras.models.load_model(MODEL_FOLDER, compile=True)
+    return keras.models.load_model(file_name, compile=True)
 
 
-def predict(model, image_samples):
+def predict(model, config, pos_or_neg, file_name):
     '''
-    Make predictions using a previously trained model.
+    Make a prediction based on the model.
     '''
-    # A few random samples
-    samples_to_predict = []
+    tokens, text = pre.preprocess_file(config, pos_or_neg, file_name)
+    input = np.array(tokens)
+    output = model.predict(input)
 
-    # Convert into Numpy array
-    samples_to_predict = np.array(image_samples)
-    print(samples_to_predict.shape)
-
-    probabilities = model.predict(samples_to_predict)
-    print(type(probabilities))
-    print(probabilities)
-
-    # Generate arg maxes for predictions
-    classes = np.argmax(probabilities, axis=1)
-    print(classes)
+    print(text)
+    print(output[0])
 
 
 def main(args):
@@ -193,26 +204,44 @@ def main(args):
         'gpu_available': False
     }
 
-    # Start Training
+    if args.predict:
+        model = load_model(args.model)
+        predict(model, config, args.pos_or_neg, args.predict)
+        return
+
     if args.distribute:
-        model, results, duration = start_ray_train(config, num_workers=4)
-    else:
+        model_state_dict, results, duration = start_ray_train(config, num_workers=4)
+        save_model(model_state_dict, 'sa_lstm_distributed')
+
+    if args.local:
         model, results, duration = train_epochs_local(config)
+        save_model(model, 'sa_lstm_local.h5')
 
     # Report results
     print('Smoke Test size: {}'.format(config.get('smoke_test_size')))
     print('Batch size: {}'.format(config.get('batch_size')))
     print('Total elapsed training time: ', duration)
-    print(type(model))
-    print(results)
-    #save_model(model)
+    if args.verbose:
+        print(results)
 
 
 if __name__ == '__main__':
     # Setup all the CLI arguments for this module.
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', '--distribute',
-                        help='Distribute the training task.',
+                        help='Train model using distributed workers.',
+                        action='store_true')
+    parser.add_argument('-l', '--local',
+                        help='Train model locally.',
+                        action='store_true')
+    parser.add_argument('-m', '--model',
+                        help='Pre-trained model to load.')
+    parser.add_argument('-p', '--predict',
+                        help='Make a prediction using a pre-trained model. Specify a file from the test set.')
+    parser.add_argument('-pn', '--pos_or_neg',
+                        help='Positive or negative. Specify where the test set file is located.')
+    parser.add_argument('-v', '--verbose',
+                        help='Verbose output (show results list).',
                         action='store_true')
 
     # Parse what was passed in. This will also check the arguments for you and produce

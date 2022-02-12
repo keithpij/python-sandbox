@@ -106,7 +106,6 @@ def training_setup(config):
 
     # Split to create a validation set.
     X_train, y_train, X_valid, y_valid = pre.split_dataset(X, y, 0.8)
-    print(X_train[0:5])
 
     # Tensor datasets
     train_dataset = TensorDataset(torch.from_numpy(np.array(X_train)), torch.from_numpy(np.array(y_train)))
@@ -125,7 +124,6 @@ def train_batches(dataloader, model, loss_fn, optimizer, config):
     This function contains the batch loop. It is used to train
     a model locally and remotely.
     '''
-
     # batch loop
     for inputs, labels in dataloader:
         # zero accumulated gradients
@@ -161,7 +159,7 @@ def validate_epoch(dataloader, model, loss_fn):
             #loss += loss_fn(pred, labels).item()
 
     loss /= num_batches
-    result = {"process_id": os.getpid(), "loss": loss}
+    result = {'process_id': os.getpid(), 'loss': loss}
     return result
 
 
@@ -186,13 +184,14 @@ def train_epochs_local(config):
 
     # epoch loop
     results = []
-    for _ in range(epochs):
+    for epoch in range(epochs):
         train_batches(train_loader, model, loss_fn, optimizer, config)
         result = validate_epoch(validation_loader, model, loss_fn)
+        result['epoch'] = epoch + 1
         results.append(result)
 
     duration = time.time() - start_time
-    return model, results, duration
+    return model.state_dict(), results, duration
 
 
 def train_epochs_remote(config):
@@ -222,13 +221,14 @@ def train_epochs_remote(config):
 
     # epoch loop
     results = []
-    for _ in range(epochs):
+    for epoch in range(epochs):
         train_batches(train_loader, model, loss_fn, optimizer, config)
         result = validate_epoch(validation_loader, model, loss_fn)
+        result['epoch'] = epoch + 1
         train.report(**result)
         results.append(result)
 
-    return results
+    return model.state_dict(), results
 
 
 def start_ray_train(config, num_workers=4, use_gpu=False):
@@ -241,34 +241,48 @@ def start_ray_train(config, num_workers=4, use_gpu=False):
     trainer.start()
 
     start_time = time.time()
-    model = trainer.run(train_epochs_remote, config)
-
+    response = trainer.run(train_epochs_remote, config)
     duration = time.time() - start_time
 
     trainer.shutdown()
 
-    return model, duration
+    model_state_dict = response[0][0]
+    results = []
+    for (_, result) in response:
+        results.append(result)
+
+    return model_state_dict, results, duration
 
 
-def save_model(model, file_name):
+def save_model(model_state_dict, file_name):
     file_path = os.path.join(os.getcwd(), file_name)
-    torch.save(model, file_path)
+    torch.save(model_state_dict, file_path)
 
 
-def load_model(file_name):
+def load_model(file_name, config):
     file_path = os.path.join(os.getcwd(), file_name)
-    model = torch.load(file_path)
+
+    vocab_size = config.get('vocab_size')
+    output_size = config.get('output_size')
+    embedding_dim = config.get('embedding_dim') #400
+    hidden_dim = config.get('hidden_dim') #256
+    n_layers = config.get('n_layers') #2
+    batch_size = config.get('batch_size')
+
+    model = SentimentLSTM(vocab_size, output_size, embedding_dim, hidden_dim, n_layers, batch_size)
+    model.load_state_dict(torch.load(file_path))
     return model
 
 
-def predict(model, config, text):
+def predict(model, config, pos_or_neg, file_name):
     '''
     Make a prediction based on the model.
     '''
-    tokens = pre.preprocess_text(config, text)
+    tokens, text = pre.preprocess_file(config, pos_or_neg, file_name)
     tensor_input = torch.from_numpy(np.array(tokens))
-
     output = model(tensor_input)
+
+    print(text)
     print(output)
 
 
@@ -291,34 +305,44 @@ def main(args):
     }
 
     if args.predict:
-        model = load_model('lstm.pt')
-        predict(model, config, args.predict)
+        model = load_model(args.model, config)
+        predict(model, config, args.pos_or_neg, args.predict)
         return
 
-    # Start Training
     if args.distribute:
-        results, duration = start_ray_train(config, num_workers=4)
-        #save_model(model, 'remote_sa_lstm.pt')
-    else:
-        model, results, duration = train_epochs_local(config)
-        save_model(model, 'local_sa_lstm.pt')
+        model_state_dict, results, duration = start_ray_train(config, num_workers=4)
+        save_model(model_state_dict, 'sa_lstm_distributed.pt')
+
+    if args.local:
+        model_state_dict, results, duration = train_epochs_local(config)
+        save_model(model_state_dict, 'sa_lstm_local.pt')
 
     # Report results
     print('Smoke Test size: {}'.format(config.get('smoke_test_size')))
     print('Batch size: {}'.format(config.get('batch_size')))
     print('Total elapsed training time: ', duration)
-    #print(type(model))
-    print(results)
+    if args.verbose:
+        print(results)
 
 
 if __name__ == "__main__":
     # Setup all the CLI arguments for this module.
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', '--distribute',
-                        help='Distribute the training task.',
+                        help='Train model using distributed workers.',
                         action='store_true')
+    parser.add_argument('-l', '--local',
+                        help='Train model locally.',
+                        action='store_true')
+    parser.add_argument('-m', '--model',
+                        help='Pre-trained model to load.')
     parser.add_argument('-p', '--predict',
-                        help='Predict text sentiment.')
+                        help='Make a prediction using a pre-trained model. Specify a file from the test set.')
+    parser.add_argument('-pn', '--pos_or_neg',
+                        help='Positive or negative. Specify where the test set file is located.')
+    parser.add_argument('-v', '--verbose',
+                        help='Verbose output (show results list).',
+                        action='store_true')
 
     # Parse what was passed in. This will also check the arguments for you and produce
     # a help message if something is wrong.

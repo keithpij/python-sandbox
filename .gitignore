@@ -3,6 +3,7 @@
 /ml/raysgd/*.pt
 /ml/raytrain/aclImdb/*
 /ml/raytrain/*.pt
+/ml/raytrain/*.h5
 ml/fastai/animals
 ml/fastai/images
 

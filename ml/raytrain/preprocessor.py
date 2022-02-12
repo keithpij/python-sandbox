@@ -10,6 +10,8 @@ import pandas as pd
 TRAIN_NEGATIVE_REVIEWS_DIR = os.path.join(os.getcwd(), 'aclImdb', 'train', 'neg')
 TRAIN_POSITIVE_REVIEWS_DIR = os.path.join(os.getcwd(), 'aclImdb', 'train', 'pos')
 
+TEST_REVIEWS_DIR = os.path.join(os.getcwd(), 'aclImdb', 'test')
+
 
 def get_all_data():
     '''
@@ -170,6 +172,35 @@ def preprocess_text(config, text):
     tokens = new    
 
     return [tokens]
+
+
+def preprocess_file(config, pos_or_neg, file_name):
+    X, _ = get_all_data()
+
+    vocab_size = config.get('vocab_size')
+    training_dim = config.get('training_dim', 200)
+
+    word_to_int_mapping = create_tokens(X, vocab_size)
+    print(len(word_to_int_mapping))
+
+    # Load a single file from the test set.
+    file_path = os.path.join(TEST_REVIEWS_DIR, pos_or_neg, file_name)
+    with open(file_path, 'r') as f:
+        review = f.read()
+    text = clean_entry(review)
+
+    tokens = tokenize_text(text, word_to_int_mapping)
+
+    num_tokens = len(tokens)
+
+    if num_tokens <= training_dim:
+        zeroes = list(np.zeros(training_dim-num_tokens, dtype=int))
+        new = tokens + zeroes
+    elif num_tokens > training_dim:
+        new = tokens[0:training_dim]
+    tokens = new    
+
+    return [tokens], text
 
 
 def split_dataset(X, y, train_percent):
