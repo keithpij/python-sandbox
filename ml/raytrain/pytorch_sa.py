@@ -326,7 +326,14 @@ def main(args):
 
 
 if __name__ == "__main__":
-    # Setup all the CLI arguments for this module.
+    '''
+    Setup all the CLI arguments for this module.
+    Some sample commands for calling a model for predictions are below:
+
+        python pytorch_sa.py -p 0_10.txt -m sa_lstm_local.h5 -pn pos
+        python pytorch_sa.py -p 0_2.txt -m sa_lstm_local.h5 -pn neg
+    '''
+
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', '--distribute',
                         help='Train model using distributed workers.',
