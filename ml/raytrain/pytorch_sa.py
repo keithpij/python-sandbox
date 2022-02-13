@@ -12,6 +12,7 @@ import ray
 import ray.train as train
 from ray.train import Trainer
 from ray.train.callbacks import JsonLoggerCallback, TBXLoggerCallback
+from sklearn.utils import shuffle
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import DataLoader, DistributedSampler, TensorDataset
 import torch
@@ -25,28 +26,30 @@ class SentimentLSTM(nn.Module):
     An LSTM is a type of RNN network the  that will be used to perform Sentiment analysis.
     '''
 
-    def __init__(self, vocab_size, output_size, embedding_dim, hidden_dim, n_layers, batch_size):
+    def __init__(self, vocab_size, output_dim, embedding_dim, hidden_dim, n_layers, batch_size):
         '''
         Initialize the model and set up the layers.
         '''
         super(SentimentLSTM, self).__init__()
 
-        self.output_size = output_size
+        self.output_dim = output_dim
         self.n_layers = n_layers
         self.hidden_dim = hidden_dim
         self.batch_size = batch_size
+        self.vocab_size = vocab_size
 
         # layers
         self.embedding = nn.Embedding(vocab_size, embedding_dim)
-        self.lstm = nn.LSTM(embedding_dim, hidden_dim)
+        self.lstm = nn.LSTM(input_size=embedding_dim, hidden_size=hidden_dim, num_layers=n_layers, batch_first=True)
 
-        self.hidden = self.init_hidden()
+        #self.hidden = self.init_hidden()
+        self.dropout = nn.Dropout(0.3)
 
         # linear and sigmoid layers
-        self.fcl = nn.Linear(hidden_dim, output_size)
+        self.fcl = nn.Linear(hidden_dim, output_dim)
         self.sig = nn.Sigmoid()
 
-    def forward(self, x):
+    def forward(self, x, hidden):
         '''
         Forward pass
         '''
@@ -55,14 +58,15 @@ class SentimentLSTM(nn.Module):
         # embeddings and lstm_out
         embeds = self.embedding(x)
         
-        lstm_out, _ = self.lstm(embeds, self.hidden)
-        #lstm_out, _ = self.lstm(embeds.view(len(x), 1, -1))
+        lstm_out, hidden = self.lstm(embeds, hidden)
 
         # stack up lstm outputs
         lstm_out = lstm_out.contiguous().view(-1, self.hidden_dim)
 
         # fully-connected layer
-        out = self.fcl(lstm_out)
+        out = self.dropout(lstm_out)
+        out = self.fcl(out)
+
         # sigmoid function
         sig_out = self.sig(out)
 
@@ -71,27 +75,30 @@ class SentimentLSTM(nn.Module):
         sig_out = sig_out[:, -1] # get last batch of labels
 
         # return last sigmoid output and hidden state
-        return sig_out
+        return sig_out, hidden
 
-    def init_hidden(self, train_on_gpu=False):
-        ''' Initializes hidden state '''
-        # Create two new tensors with sizes n_layers x batch_size x hidden_dim,
-        # initialized to zero, for hidden state and cell state of LSTM
+    def init_hidden(self, batch_size=None):
+        ''' 
+        Initializes hidden state
+        Creates two new tensors with sizes n_layers x batch_size x hidden_dim,
+        initialized to zero, for hidden state and cell state of LSTM.
 
-        weight = next(self.parameters()).data
+        Note: The batch_size needs to be 1 for predictions.
+        '''
+        if not batch_size:
+            batch_size = self.batch_size
 
-        hidden = (weight.new(self.n_layers, self.batch_size, self.hidden_dim).zero_(),
-                    weight.new(self.n_layers, self.batch_size, self.hidden_dim).zero_())
-
-        self.hidden = hidden
-
+        h0 = torch.zeros((self.n_layers, batch_size, self.hidden_dim))
+        c0 = torch.zeros((self.n_layers, batch_size, self.hidden_dim))
+        hidden = (h0,c0)
+        return hidden
 
 def training_setup(config):
     '''
     This function will the datasets, model, loss function, and optimzer.
     '''
     vocab_size = config.get('vocab_size')
-    output_size = config.get('output_size')
+    output_dim = config.get('output_dim')
     embedding_dim = config.get('embedding_dim') #400
     hidden_dim = config.get('hidden_dim') #256
     n_layers = config.get('n_layers') #2
@@ -111,7 +118,7 @@ def training_setup(config):
     train_dataset = TensorDataset(torch.from_numpy(np.array(X_train)), torch.from_numpy(np.array(y_train)))
     val_dataset = TensorDataset(torch.from_numpy(np.array(X_valid)), torch.from_numpy(np.array(y_valid)))
 
-    model = SentimentLSTM(vocab_size, output_size, embedding_dim, hidden_dim, n_layers, batch_size)
+    model = SentimentLSTM(vocab_size, output_dim, embedding_dim, hidden_dim, n_layers, batch_size)
     
     loss_fn = nn.BCELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
@@ -124,33 +131,48 @@ def train_batches(dataloader, model, loss_fn, optimizer, config):
     This function contains the batch loop. It is used to train
     a model locally and remotely.
     '''
+    clip = 5 # TODO - Put this in config if it is needed.
+
+    # Initialize the hidden state.
+    h = model.init_hidden()
+
     # batch loop
     for inputs, labels in dataloader:
+        # Create new variables for the hidden state, otherwise we
+        # would backprop through the entire training history.
+        h = tuple([each.data for each in h])
         # zero accumulated gradients
         model.zero_grad()
 
         # get the output from the model
-        inputs = inputs.type(torch.LongTensor)
-        output = model(inputs)
+        #inputs = inputs.type(torch.LongTensor)
+        output, h = model(inputs, h)
 
         # calculate the loss and perform back propagation
         loss = loss_fn(output.squeeze(), labels.float())
         loss.backward()
+        
+        # clip_grad_norm helps prevent the exploding gradient problem in RNNs / LSTMs.
+        nn.utils.clip_grad_norm_(model.parameters(), clip)
         optimizer.step()
 
 
 def validate_epoch(dataloader, model, loss_fn):
+    # Initialize the hidden state.
+    h = model.init_hidden()
+
     num_batches = len(dataloader)
     model.eval()
     loss = 0
     with torch.no_grad():
         for inputs, labels in dataloader:
+            h = tuple([each.data for each in h])
             # zero accumulated gradients
             model.zero_grad()
 
             # get the output from the model
-            inputs = inputs.type(torch.LongTensor)
-            output = model(inputs)
+            #inputs = inputs.type(torch.LongTensor)
+            output, h = model(inputs, h)
 
             # calculate the loss and perform backprop
             loss += loss_fn(output.squeeze(), labels.float())
@@ -176,10 +198,12 @@ def train_epochs_local(config):
 
     train_loader = torch.utils.data.DataLoader(
         train_dataset,
+        shuffle = True,
         batch_size=batch_size)
 
     validation_loader = torch.utils.data.DataLoader(
         val_dataset,
+        shuffle = True,
         batch_size=batch_size)
 
     # epoch loop
@@ -217,7 +241,6 @@ def train_epochs_remote(config):
     train_loader = train.torch.prepare_data_loader(train_loader)
     validation_loader = train.torch.prepare_data_loader(validation_loader)
     model = train.torch.prepare_model(model)
-    #model = DistributedDataParallel(model)
 
     # epoch loop
     results = []
@@ -263,13 +286,13 @@ def load_model(file_name, config):
     file_path = os.path.join(os.getcwd(), file_name)
 
     vocab_size = config.get('vocab_size')
-    output_size = config.get('output_size')
+    output_dim = config.get('output_dim')
     embedding_dim = config.get('embedding_dim') #400
     hidden_dim = config.get('hidden_dim') #256
     n_layers = config.get('n_layers') #2
     batch_size = config.get('batch_size')
 
-    model = SentimentLSTM(vocab_size, output_size, embedding_dim, hidden_dim, n_layers, batch_size)
+    model = SentimentLSTM(vocab_size, output_dim, embedding_dim, hidden_dim, n_layers, batch_size)
     model.load_state_dict(torch.load(file_path))
     return model
 
@@ -280,25 +303,31 @@ def predict(model, config, pos_or_neg, file_name):
     '''
     tokens, text = pre.preprocess_file(config, pos_or_neg, file_name)
     tensor_input = torch.from_numpy(np.array(tokens))
-    output = model(tensor_input)
+    h = model.init_hidden(batch_size=1)
+    h = tuple([each.data for each in h])
+    output, h = model(tensor_input, h)
 
+    prediction = output.item()
+    sentiment = 'Positive' if prediction > 0.5 else 'Negative'
     print(text)
-    print(output)
+    print(sentiment)
+    print(output.item())
 
 
 def main(args):
     '''
     Main entry point.
     '''
+
     # Configuration
     config = {
-        'smoke_test_size': 200,  # Length of training set. 0 for all reviews.
+        'smoke_test_size': 0,  # Length of training set. 0 for all reviews.
         'epochs': 4,             # Total number of epochs
-        'batch_size': 10,        # Batch size for each epoch
+        'batch_size': 50,        # Batch size for each epoch
         'training_dim': 200,     # Number of tokens (words) to put into each review.
-        'vocab_size': 7000,      # Vocabulary size
-        'output_size': 1,
-        'embedding_dim': 400,
+        'vocab_size': 2000,      # Vocabulary size
+        'output_dim': 1,
+        'embedding_dim': 64,
         'hidden_dim': 256,
         'n_layers': 2,
         'lr': 0.001,
@@ -328,10 +357,15 @@ def main(args):
 if __name__ == "__main__":
     '''
     Setup all the CLI arguments for this module.
-    Some sample commands for calling a model for predictions are below:
+    Sample commands for training a model locally and distributed are below:
+        
+        python pytorch_sa.py -l -v
+        python pytorch_sa.py -d -v
 
-        python pytorch_sa.py -p 0_10.txt -m sa_lstm_local.h5 -pn pos
-        python pytorch_sa.py -p 0_2.txt -m sa_lstm_local.h5 -pn neg
+    Sample commands for using a trained model to make predictions are below:
+
+        python pytorch_sa.py -p 0_10.txt -m sa_lstm_local.pt -pn pos
+        python pytorch_sa.py -p 0_2.txt -m sa_lstm_local.pt -pn neg
     '''
 
     parser = argparse.ArgumentParser()

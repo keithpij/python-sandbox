@@ -117,13 +117,11 @@ def train_epochs_remote(config):
 
     train_loader = torch.utils.data.DataLoader(
         train_dataset,
-        batch_size=batch_size,
-        sampler=DistributedSampler(train_dataset))
+        batch_size=batch_size)
 
     validation_loader = torch.utils.data.DataLoader(
         val_dataset,
-        batch_size=batch_size,
-        sampler=DistributedSampler(val_dataset))
+        batch_size=batch_size)
 
     # Prepare the data and the model for distributed training.
     train_loader = train.torch.prepare_data_loader(train_loader)

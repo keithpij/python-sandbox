@@ -1,6 +1,4 @@
 # Internet movie database for sentiment analysis.
-/ml/raysgd/aclImdb/*
-/ml/raysgd/*.pt
 /ml/raytrain/aclImdb/*
 /ml/raytrain/*.pt
 /ml/raytrain/*.h5
@@ -40,6 +38,7 @@ ml/fastai/images
 *.sqlite
 *.sqlite3
 *.csv
+*.json
 
 # OS generated files #
 ######################

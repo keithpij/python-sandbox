@@ -1,4 +1,5 @@
 from collections import Counter
+import json
 import os
 from string import punctuation
 
@@ -13,21 +14,28 @@ TRAIN_POSITIVE_REVIEWS_DIR = os.path.join(os.getcwd(), 'aclImdb', 'train', 'pos'
 TEST_REVIEWS_DIR = os.path.join(os.getcwd(), 'aclImdb', 'test')
 
 
-def get_all_data():
+def get_all_data(smoke_test_size=0):
     '''
     Load all the raw negative and positive data from the review files.
+    If data is needed for a quick experiment (smoke test) then we want to get an equal amount of files
+    from the negative dir and the positive dir.
     '''
-    X_negative, y_negative = get_data(TRAIN_NEGATIVE_REVIEWS_DIR, 0)
-    X_positive, y_positive = get_data(TRAIN_POSITIVE_REVIEWS_DIR, 1)
+    max_files = 0
+    if smoke_test_size:
+        max_files = smoke_test_size/2
+
+    X_negative, y_negative = get_data(TRAIN_NEGATIVE_REVIEWS_DIR, 0, max_files)
+    X_positive, y_positive = get_data(TRAIN_POSITIVE_REVIEWS_DIR, 1, max_files)
     X = X_negative + X_positive
     y = y_negative + y_positive
     return X, y
 
 
-def get_data(directory, label):
+def get_data(directory, label, max_files):
     '''
     Retrieve the Imdb data from the specified folder.
     '''
+    count = 0
     X = []
     y = []
     for file_name in os.listdir(directory):
@@ -37,6 +45,10 @@ def get_data(directory, label):
         clean = clean_entry(review)
         X.append(clean)
         y.append(label)
+        count += 1
+        if max_files and count >= max_files:
+            break
+
     return X, y
 
 
@@ -128,22 +140,19 @@ def reshape(X, seq_length):
 
 
 def preprocess_data(config):
-    X, y = get_all_data()
-
     smoke_test_size = config.get('smoke_test_size', 0)
     vocab_size = config.get('vocab_size')
 
-    if smoke_test_size:
-        X = X[:smoke_test_size]
-        y = y[:smoke_test_size]
+    X, y = get_all_data(smoke_test_size)
+    print(len(X))
 
     word_to_int_mapping = create_tokens(X, vocab_size)
     print(len(word_to_int_mapping))
 
-    X = tokenize(X, word_to_int_mapping)
+    with open('word_to_int_mapping.json', 'w') as json_file:
+        json.dump(word_to_int_mapping, json_file)
 
-    # Set vocab_size into config so that it can be used by the network.
-    #config['vocab_size'] = len(word_to_int_mapping) + 1 # Add one to account for 0 padding.
+    X = tokenize(X, word_to_int_mapping)
 
     training_dim = config.get('training_dim', 200)
     X = reshape(X, training_dim)
@@ -151,13 +160,15 @@ def preprocess_data(config):
 
 
 def preprocess_text(config, text):
-    X, _ = get_all_data()
-
+    '''
+    Preprocess raw review text entered by a user.
+    '''
     vocab_size = config.get('vocab_size')
     training_dim = config.get('training_dim', 200)
 
-    word_to_int_mapping = create_tokens(X, vocab_size)
-    print(len(word_to_int_mapping))
+    with open('word_to_int_mapping.json') as json_file:
+        word_to_int_mapping = json.load(json_file)
+    assert len(word_to_int_mapping) == vocab_size-1
 
     text = clean_entry(text)
     tokens = tokenize_text(text, word_to_int_mapping)
@@ -175,13 +186,15 @@ def preprocess_text(config, text):
 
 
 def preprocess_file(config, pos_or_neg, file_name):
-    X, _ = get_all_data()
-
+    '''
+    Preprocess raw review text found in a single file found within the test set.
+    '''
     vocab_size = config.get('vocab_size')
     training_dim = config.get('training_dim', 200)
 
-    word_to_int_mapping = create_tokens(X, vocab_size)
-    print(len(word_to_int_mapping))
+    with open('word_to_int_mapping.json') as json_file:
+        word_to_int_mapping = json.load(json_file)
+    assert len(word_to_int_mapping) == vocab_size-1
 
     # Load a single file from the test set.
     file_path = os.path.join(TEST_REVIEWS_DIR, pos_or_neg, file_name)
@@ -200,7 +213,7 @@ def preprocess_file(config, pos_or_neg, file_name):
         new = tokens[0:training_dim]
     tokens = new    
 
-    return [tokens], text
+    return [tokens], review
 
 
 def split_dataset(X, y, train_percent):
