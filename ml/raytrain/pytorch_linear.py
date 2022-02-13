@@ -35,6 +35,25 @@ class LinearDataset(torch.utils.data.Dataset):
         return len(self.x)
 
 
+def training_setup(config):
+    '''
+    This function will create the datasets, model, loss function, and optimzer.
+    '''
+    data_size = config.get("data_size", 1000)
+    val_size = config.get("val_size", 400)
+    hidden_size = config.get("hidden_size", 1)
+    lr = config.get("lr", 1e-2)
+
+    train_dataset = LinearDataset(2, 5, size=data_size)
+    val_dataset = LinearDataset(2, 5, size=val_size)
+
+    model = nn.Linear(1, hidden_size)
+    loss_fn = nn.MSELoss()
+    optimizer = torch.optim.SGD(model.parameters(), lr=lr)
+
+    return train_dataset, val_dataset, model, loss_fn, optimizer
+
+
 def train_batches(dataloader, model, loss_fn, optimizer):
     for X, y in dataloader:
         # Compute prediction error
@@ -58,25 +77,6 @@ def validate_epoch(dataloader, model, loss_fn):
     loss /= num_batches
     result = {'process_id': os.getpid(), 'loss': loss}
     return result
-
-
-def training_setup(config):
-    '''
-    This function will the datasets, model, loss function, and optimzer.
-    '''
-    data_size = config.get("data_size", 1000)
-    val_size = config.get("val_size", 400)
-    hidden_size = config.get("hidden_size", 1)
-    lr = config.get("lr", 1e-2)
-
-    train_dataset = LinearDataset(2, 5, size=data_size)
-    val_dataset = LinearDataset(2, 5, size=val_size)
-
-    model = nn.Linear(1, hidden_size)
-    loss_fn = nn.MSELoss()
-    optimizer = torch.optim.SGD(model.parameters(), lr=lr)
-
-    return train_dataset, val_dataset, model, loss_fn, optimizer
 
 
 def train_epochs_local(config):
