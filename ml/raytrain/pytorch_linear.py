@@ -221,7 +221,18 @@ def main(args):
 
 
 if __name__ == "__main__":
-    # Setup all the CLI arguments for this module.
+    '''
+    Setup all the CLI arguments for this module.
+
+    Sample commands for training a model locally and distributed:    
+        python pytorch_linear.py -l -v
+        python pytorch_linear.py -d -v
+
+    Sample commands for using a trained model to make predictions:
+        python pytorch_linear.py -p 5 -m linear_local.pt
+        python pytorch_linear.py -p 5 -m linear_distributed.pt
+    '''
+
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', '--distribute',
                         help='Train model using distributed workers.',

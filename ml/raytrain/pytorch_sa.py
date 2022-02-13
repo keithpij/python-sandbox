@@ -357,13 +357,12 @@ def main(args):
 if __name__ == "__main__":
     '''
     Setup all the CLI arguments for this module.
-    Sample commands for training a model locally and distributed are below:
-        
+
+    Sample commands for training a model locally and distributed:    
         python pytorch_sa.py -l -v
         python pytorch_sa.py -d -v
 
-    Sample commands for using a trained model to make predictions are below:
-
+    Sample commands for using a trained model to make predictions:
         python pytorch_sa.py -p 0_10.txt -m sa_lstm_local.pt -pn pos
         python pytorch_sa.py -p 0_2.txt -m sa_lstm_local.pt -pn neg
     '''
