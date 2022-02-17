@@ -47,15 +47,21 @@ def get_model(config):
     vocab_size = config.get('vocab_size')
     embedding_dim = config.get('embedding_dim')
     hidden_dim = config.get('hidden_dim')
+    output_size = config.get('output_size')
 
     model = tf.keras.Sequential([
-        tf.keras.layers.Embedding(input_dim=vocab_size,output_dim=64),
-        tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(64)),
-        tf.keras.layers.Dense(64, activation='relu'),
-        tf.keras.layers.Dense(1)
+        tf.keras.layers.Embedding(input_dim=vocab_size,output_dim=embedding_dim),
+        tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(hidden_dim, return_sequences=True)),
+        tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(hidden_dim)),
+        tf.keras.layers.Dense(hidden_dim, activation='relu'),
+        tf.keras.layers.Dropout(0.5),
+        tf.keras.layers.Dense(output_size)
     ])
 
-    model.compile(loss="binary_crossentropy", optimizer="adam", metrics=["accuracy"])
+    #model.compile(loss="binary_crossentropy", optimizer="adam", metrics=["accuracy"])
+    model.compile(loss=tf.keras.losses.BinaryCrossentropy(from_logits=True),
+              optimizer=tf.keras.optimizers.Adam(1e-4),
+              metrics=['accuracy'])
 
     return model
 
@@ -89,8 +95,8 @@ def train_epochs_local(config):
 
     train_dataset, valid_dataset = get_data(config)
     # Repeat is needed to avoid
-    train_dataset = train_dataset.batch(batch_size)
-    valid_dataset = valid_dataset.batch(batch_size)
+    train_dataset = train_dataset.shuffle(1000).batch(batch_size)
+    valid_dataset = valid_dataset.shuffle(1000).batch(batch_size)
 
     model = get_model(config)
 
@@ -103,18 +109,17 @@ def train_epochs_local(config):
 
 
 def train_epochs_remote(config):
-    per_worker_batch_size = config.get('batch_size')
+    batch_size = config.get('batch_size')
     epochs = config.get('epochs')
-    steps_per_epoch = config.get('steps_per_epoch', 70)
 
     tf_config = json.loads(os.environ["TF_CONFIG"])
     num_workers = len(tf_config["cluster"]["worker"])
+    steps_per_epoch = (batch_size/num_workers)
     print(tf_config)
 
     strategy = tf.distribute.MultiWorkerMirroredStrategy()
     train_dataset, _ = get_data(config)
-    global_batch_size = per_worker_batch_size * num_workers
-    multi_worker_dataset = train_dataset.batch(global_batch_size)
+    multi_worker_dataset = train_dataset.batch(batch_size)
 
     with strategy.scope():
         # Model building/compiling need to be within strategy.scope().
@@ -181,8 +186,11 @@ def predict(model, config, pos_or_neg, file_name):
     input = np.array(tokens)
     output = model.predict(input)
 
+    prediction = output[0]
+    sentiment = 'Positive' if prediction > 0.5 else 'Negative'
     print(text)
-    print(output[0])
+    print(sentiment)
+    print(prediction)
 
 
 def main(args):
@@ -193,7 +201,7 @@ def main(args):
     config = {
         'smoke_test_size': 200,  # Length of training set. 0 for all reviews.
         'epochs': 4,             # Total number of epochs
-        'batch_size': 10,        # Batch size for each epoch
+        'batch_size': 50,        # Batch size for each epoch
         'training_dim': 200,     # Number of tokens (words) to put into each review.
         'vocab_size': 7000,      # Vocabulary size
         'output_size': 1,
@@ -201,7 +209,6 @@ def main(args):
         'hidden_dim': 256,
         'n_layers': 2,          # TODO: Figure out why this is not used.
         'lr': 0.001,            # TODO: Figure out why this is not used.
-        'gpu_available': False
     }
 
     if args.predict:
@@ -228,8 +235,12 @@ def main(args):
 if __name__ == '__main__':
     '''
     Setup all the CLI arguments for this module.
-    Some sample commands for calling a model for predictions are below:
 
+    Sample commands for training a model locally and distributed:    
+        python tensorflow_sa.py -l -v
+        python tensorflow_sa.py -d -v
+
+    Sample commands for calling a model for predictions:
         python tensorflow_sa.py -p 0_10.txt -m sa_lstm_local.h5 -pn pos
         python tensorflow_sa.py -p 0_2.txt -m sa_lstm_local.h5 -pn neg
     '''

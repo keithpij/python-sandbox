@@ -40,7 +40,7 @@ class SentimentLSTM(nn.Module):
 
         # layers
         self.embedding = nn.Embedding(vocab_size, embedding_dim)
-        self.lstm = nn.LSTM(input_size=embedding_dim, hidden_size=hidden_dim, num_layers=n_layers, dropout=0.5, batch_first=True)
+        self.lstm = nn.LSTM(input_size=embedding_dim, hidden_size=hidden_dim, num_layers=n_layers, batch_first=True)
 
         #self.hidden = self.init_hidden()
         self.dropout = nn.Dropout(0.3)
@@ -321,11 +321,11 @@ def main(args):
 
     # Configuration
     config = {
-        'smoke_test_size': 2000,  # Length of training set. 0 for all reviews.
+        'smoke_test_size': 1000,  # Length of training set. 0 for all reviews.
         'epochs': 4,             # Total number of epochs
-        'batch_size': 100,        # Batch size for each epoch
+        'batch_size': 500,        # Batch size for each epoch
         'training_dim': 200,     # Number of tokens (words) to put into each review.
-        'vocab_size': 7000,      # Vocabulary size
+        'vocab_size': 2000,      # Vocabulary size
         'output_dim': 1,
         'embedding_dim': 400,
         'hidden_dim': 256,
