@@ -21,7 +21,7 @@ def get_model_old(config):
     Creator that returns a LSTM model using Keras.
     Note: Compile is called here.
     '''
-    from tensorflow import keras
+    #from tensorflow import keras
     vocab_size = config.get('vocab_size')
     embedding_dim = config.get('embedding_dim')
     hidden_dim = config.get('hidden_dim')
@@ -40,7 +40,7 @@ def get_model_old(config):
 
 def get_model(config):
     '''
-    Creator that returns a LSTM model using Keras.
+    Creates an LSTM model using Keras.
     Note: Compile is called here.
     '''
     from tensorflow import keras
@@ -68,14 +68,10 @@ def get_model(config):
 
 def get_data(config):
     '''
-    Creator that returns a TensorFlow dataset. This is the best option for both
-    local and distributed training.
+    Returns a TensorFlow dataset after preprocessing the raw data.
     '''
-    #import tensorflow as tf
     X, y = pre.preprocess_data(config)
     print('Total number of reviews: ', len(X))
-
-    batch_size = config.get('batch_size')
 
     # Split to create a validation set.
     X_train, y_train, X_valid, y_valid = pre.split_dataset(X, y, 0.8)
@@ -101,7 +97,7 @@ def train_epochs_local(config):
     model = get_model(config)
 
     start_time = time.time()
-    history = model.fit(train_dataset, batch_size=batch_size, epochs=epochs)
+    history = model.fit(train_dataset, batch_size=batch_size, epochs=epochs, validation_data=valid_dataset)
     duration = time.time() - start_time
 
     results = history.history
@@ -115,20 +111,19 @@ def train_epochs_remote(config):
     tf_config = json.loads(os.environ["TF_CONFIG"])
     num_workers = len(tf_config["cluster"]["worker"])
     steps_per_epoch = (batch_size/num_workers)
-    print(tf_config)
+    #print(tf_config)
 
     strategy = tf.distribute.MultiWorkerMirroredStrategy()
-    train_dataset, _ = get_data(config)
-    multi_worker_dataset = train_dataset.batch(batch_size)
+    train_dataset, valid_dataset = get_data(config)
+    train_dataset = train_dataset.shuffle(1000).batch(batch_size)
+    valid_dataset = valid_dataset.shuffle(1000).batch(batch_size)
 
     with strategy.scope():
         # Model building/compiling need to be within strategy.scope().
-        multi_worker_model = get_model(config)
+        model = get_model(config)
 
-    history = multi_worker_model.fit(
-        multi_worker_dataset,
-        epochs=epochs,
-        steps_per_epoch=steps_per_epoch)
+    history = model.fit(train_dataset, epochs=epochs,
+        steps_per_epoch=steps_per_epoch, validation_data=valid_dataset)
 
     results = history.history
     return results
@@ -218,7 +213,7 @@ def main(args):
 
     if args.distribute:
         model_state_dict, results, duration = start_ray_train(config, num_workers=4)
-        save_model(model_state_dict, 'sa_lstm_distributed')
+        #save_model(model_state_dict, 'sa_lstm_distributed')
 
     if args.local:
         model, results, duration = train_epochs_local(config)
