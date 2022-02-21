@@ -48,6 +48,7 @@ def get_model(config):
     embedding_dim = config.get('embedding_dim')
     hidden_dim = config.get('hidden_dim')
     output_size = config.get('output_size')
+    lr = config.get('lr')
 
     model = tf.keras.Sequential([
         tf.keras.layers.Embedding(input_dim=vocab_size,output_dim=embedding_dim),
@@ -60,7 +61,7 @@ def get_model(config):
 
     #model.compile(loss="binary_crossentropy", optimizer="adam", metrics=["accuracy"])
     model.compile(loss=tf.keras.losses.BinaryCrossentropy(from_logits=True),
-              optimizer=tf.keras.optimizers.Adam(1e-4),
+              optimizer=tf.keras.optimizers.Adam(lr),
               metrics=['accuracy'])
 
     return model
@@ -113,13 +114,18 @@ def train_epochs_remote(config):
     steps_per_epoch = (batch_size/num_workers)
     #print(tf_config)
 
+    # Be sure to call this function before setting up your datasets
+    # and your model.
     strategy = tf.distribute.MultiWorkerMirroredStrategy()
+
+    # Get the datasets.
     train_dataset, valid_dataset = get_data(config)
     train_dataset = train_dataset.shuffle(1000).batch(batch_size)
     valid_dataset = valid_dataset.shuffle(1000).batch(batch_size)
 
+    # Get the model. Model building and compiling needs to be done
+    # within strategy.scope().
     with strategy.scope():
-        # Model building/compiling need to be within strategy.scope().
         model = get_model(config)
 
     history = model.fit(train_dataset, epochs=epochs,
@@ -140,9 +146,6 @@ def start_ray_train(config, num_workers=4, use_gpu=False):
 
     start_time = time.time()
     results = trainer.run(train_epochs_remote, config=config)
-
-    print('results:')
-    print(results)
 
     duration = time.time() - start_time
 
@@ -194,9 +197,9 @@ def main(args):
     '''
     # Configuration
     config = {
-        'smoke_test_size': 200,  # Length of training set. 0 for all reviews.
-        'epochs': 4,             # Total number of epochs
-        'batch_size': 50,        # Batch size for each epoch
+        'smoke_test_size': 500,  # Length of training set. 0 for all reviews.
+        'epochs': 5,             # Total number of epochs
+        'batch_size': 100,        # Batch size for each epoch
         'training_dim': 200,     # Number of tokens (words) to put into each review.
         'vocab_size': 7000,      # Vocabulary size
         'output_size': 1,
