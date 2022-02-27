@@ -166,7 +166,7 @@ def save_model(model, file_name):
     '''
     Save the model for future use.
     '''
-    model.save(file_name)
+    model.save(file_name, save_format='tf')
 
 
 def load_model(file_name):
