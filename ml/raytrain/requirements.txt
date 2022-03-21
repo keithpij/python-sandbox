@@ -1,0 +1,8 @@
+seaborn
+nltk
+numpy
+pandas
+matplotlib
+torch
+tensorflow
+tensorflow_datasets

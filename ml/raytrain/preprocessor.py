@@ -6,15 +6,19 @@ from string import punctuation
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from sklearn.model_selection import train_test_split
+from torch import seed
 
 
 TRAIN_NEGATIVE_REVIEWS_DIR = os.path.join(os.getcwd(), 'aclImdb', 'train', 'neg')
 TRAIN_POSITIVE_REVIEWS_DIR = os.path.join(os.getcwd(), 'aclImdb', 'train', 'pos')
+TEST_NEGATIVE_REVIEWS_DIR = os.path.join(os.getcwd(), 'aclImdb', 'test', 'neg')
+TEST_POSITIVE_REVIEWS_DIR = os.path.join(os.getcwd(), 'aclImdb', 'test', 'pos')
 
 TEST_REVIEWS_DIR = os.path.join(os.getcwd(), 'aclImdb', 'test')
 
 
-def get_all_data(smoke_test_size=0):
+def get_train_valid_data(smoke_test_size=0):
     '''
     Load all the raw negative and positive data from the review files.
     If data is needed for a quick experiment (smoke test) then we want to get an equal amount of files
@@ -24,14 +28,29 @@ def get_all_data(smoke_test_size=0):
     if smoke_test_size:
         max_files = smoke_test_size/2
 
-    X_negative, y_negative = get_data(TRAIN_NEGATIVE_REVIEWS_DIR, 0, max_files)
-    X_positive, y_positive = get_data(TRAIN_POSITIVE_REVIEWS_DIR, 1, max_files)
+    X_negative, y_negative = read_files(TRAIN_NEGATIVE_REVIEWS_DIR, 0, max_files)
+    X_positive, y_positive = read_files(TRAIN_POSITIVE_REVIEWS_DIR, 1, max_files)
     X = X_negative + X_positive
     y = y_negative + y_positive
-    return X, y
+
+    X_train, X_valid, y_train, y_valid = train_test_split(X, y, train_size=0.8, shuffle=True, stratify=y, random_state=42)
+
+    return X_train, y_train, X_valid, y_valid
 
 
-def get_data(directory, label, max_files):
+def get_test_data():
+    '''
+    Load all the raw negative and positive test data from the review files.
+    '''
+    X_negative, y_negative = read_files(TEST_NEGATIVE_REVIEWS_DIR, 0)
+    X_positive, y_positive = read_files(TEST_POSITIVE_REVIEWS_DIR, 1)
+    X_test = X_negative + X_positive
+    y_test = y_negative + y_positive
+
+    return X_test, y_test
+
+
+def read_files(directory, label, max_files=0):
     '''
     Retrieve the Imdb data from the specified folder.
     '''
@@ -139,24 +158,42 @@ def reshape(X, seq_length):
     return features
 
 
-def preprocess_data(config):
-    smoke_test_size = config.get('smoke_test_size', 0)
-    vocab_size = config.get('vocab_size')
+def preprocess_train_valid_data(config):
+    smoke_test_size = config['smoke_test_size']
+    vocab_size = config['vocab_size']
 
-    X, y = get_all_data(smoke_test_size)
-    print(len(X))
+    X_train, y_train, X_valid, y_valid = get_train_valid_data(smoke_test_size)
 
-    word_to_int_mapping = create_tokens(X, vocab_size)
-    print(len(word_to_int_mapping))
-
+    word_to_int_mapping = create_tokens(X_train, vocab_size)
+ 
     with open('word_to_int_mapping.json', 'w') as json_file:
         json.dump(word_to_int_mapping, json_file)
 
-    X = tokenize(X, word_to_int_mapping)
+    X_train = tokenize(X_train, word_to_int_mapping)
+    X_valid = tokenize(X_valid, word_to_int_mapping)
+
+    training_dim = config['training_dim']
+    X_train = reshape(X_train, training_dim)
+    X_valid = reshape(X_valid, training_dim)
+
+    return X_train, y_train, X_valid, y_valid
+
+
+def preprocess_test_data(config):
+    smoke_test_size = config['smoke_test_size']
+    vocab_size = config['vocab_size']
+
+    X_test, y_test = get_test_data(smoke_test_size)
+
+    with open('word_to_int_mapping.json') as json_file:
+        word_to_int_mapping = json.load(json_file)
+    assert len(word_to_int_mapping) == vocab_size-1
+
+    X_test = tokenize(X_test, word_to_int_mapping)
 
     training_dim = config.get('training_dim', 200)
-    X = reshape(X, training_dim)
-    return X, y
+    X_test = reshape(X_test, training_dim)
+    return X_test, y_test
 
 
 def preprocess_text(config, text):

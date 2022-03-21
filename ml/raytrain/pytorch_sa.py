@@ -131,7 +131,7 @@ def train_batches(dataloader, model, loss_fn, optimizer, config):
     This function contains the batch loop. It is used to train
     a model locally and remotely.
     '''
-    clip = 5 # TODO - Put this in config if it is needed.
+    grad_clip = 5 # TODO - Put this in config if it is needed.
 
     # Initialize the hidden state.
     h = model.init_hidden()
@@ -153,7 +153,7 @@ def train_batches(dataloader, model, loss_fn, optimizer, config):
         loss.backward()
         
         # clip_grad_norm helps prevent the exploding gradient problem in RNNs / LSTMs.
-        nn.utils.clip_grad_norm_(model.parameters(), clip)
+        nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
         optimizer.step()
 
 
@@ -321,7 +321,7 @@ def main(args):
 
     # Configuration
     config = {
-        'smoke_test_size': 2000,  # Length of training set. 0 for all reviews.
+        'smoke_test_size': 500,  # Length of training set. 0 for all reviews.
         'epochs': 4,             # Total number of epochs
         'batch_size': 100,        # Batch size for each epoch
         'training_dim': 200,     # Number of tokens (words) to put into each review.
@@ -331,6 +331,7 @@ def main(args):
         'hidden_dim': 256,
         'n_layers': 2,
         'lr': 0.001,
+        'grad_clip': 5
     }
 
     if args.predict:

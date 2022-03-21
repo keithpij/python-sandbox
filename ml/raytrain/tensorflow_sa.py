@@ -8,7 +8,6 @@ import os
 import time
 
 import numpy as np
-import ray
 from ray.train import Trainer
 import tensorflow as tf
 from tensorflow import keras
@@ -44,11 +43,11 @@ def get_model(config):
     Note: Compile is called here.
     '''
     from tensorflow import keras
-    vocab_size = config.get('vocab_size')
-    embedding_dim = config.get('embedding_dim')
-    hidden_dim = config.get('hidden_dim')
-    output_size = config.get('output_size')
-    lr = config.get('lr')
+    vocab_size = config['vocab_size']
+    embedding_dim = config['embedding_dim']
+    hidden_dim = config['hidden_dim']
+    output_size = config['output_size']
+    lr = config['lr']
 
     model = tf.keras.Sequential([
         tf.keras.layers.Embedding(input_dim=vocab_size,output_dim=embedding_dim),
@@ -67,20 +66,37 @@ def get_model(config):
     return model
 
 
-def get_data(config):
+def get_train_valid_data(config):
     '''
-    Returns a TensorFlow dataset after preprocessing the raw data.
+    Returns a TensorFlow dataset after preprocessing the raw training data.
     '''
-    X, y = pre.preprocess_data(config)
-    print('Total number of reviews: ', len(X))
+    batch_size = config['batch_size']
 
-    # Split to create a validation set.
-    X_train, y_train, X_valid, y_valid = pre.split_dataset(X, y, 0.8)
+    X_train, y_train, X_valid, y_valid = pre.preprocess_train_valid_data(config)
 
     train_dataset = tf.data.Dataset.from_tensor_slices((X_train, y_train))
     valid_dataset = tf.data.Dataset.from_tensor_slices((X_valid, y_valid))
 
+    #train_dataset = train_dataset.shuffle(buffer_size).batch(batch_size).prefetch(tf.data.AUTOTUNE)
+    #valid_dataset = valid_dataset.batch(batch_size).prefetch(tf.data.AUTOTUNE)
+    train_dataset = train_dataset.shuffle(1000).batch(batch_size)
+    valid_dataset = valid_dataset.shuffle(1000).batch(batch_size)
+
     return train_dataset, valid_dataset
+
+
+def get_test_data(config):
+    '''
+    Returns a TensorFlow dataset after preprocessing the raw test data.
+    '''
+    batch_size = config.get('batch_size')
+
+    X_test, y_test = pre.preprocess_test_data(config)
+
+    test_dataset = tf.data.Dataset.from_tensor_slices((X_test, y_test))
+    test_dataset = test_dataset.batch(batch_size).prefetch(tf.data.AUTOTUNE)
+    
+    return test_dataset
 
 
 def train_epochs_local(config):
@@ -90,15 +106,12 @@ def train_epochs_local(config):
     epochs = config.get('epochs')
     batch_size = config.get('batch_size')
 
-    train_dataset, valid_dataset = get_data(config)
-    # Repeat is needed to avoid
-    train_dataset = train_dataset.shuffle(1000).batch(batch_size)
-    valid_dataset = valid_dataset.shuffle(1000).batch(batch_size)
+    train_dataset, valid_dataset = get_train_valid_data(config)
 
     model = get_model(config)
 
     start_time = time.time()
-    history = model.fit(train_dataset, batch_size=batch_size, epochs=epochs, validation_data=valid_dataset)
+    history = model.fit(train_dataset, batch_size=batch_size, epochs=epochs, validation_data=valid_dataset, validation_steps=30)
     duration = time.time() - start_time
 
     results = history.history
@@ -112,16 +125,13 @@ def train_epochs_remote(config):
     tf_config = json.loads(os.environ["TF_CONFIG"])
     num_workers = len(tf_config["cluster"]["worker"])
     steps_per_epoch = (batch_size/num_workers)
-    #print(tf_config)
 
     # Be sure to call this function before setting up your datasets
     # and your model.
     strategy = tf.distribute.MultiWorkerMirroredStrategy()
 
     # Get the datasets.
-    train_dataset, valid_dataset = get_data(config)
-    train_dataset = train_dataset.shuffle(1000).batch(batch_size)
-    valid_dataset = valid_dataset.shuffle(1000).batch(batch_size)
+    train_dataset, valid_dataset = get_train_valid_data(config)
 
     # Get the model. Model building and compiling needs to be done
     # within strategy.scope().
@@ -198,15 +208,15 @@ def main(args):
     # Configuration
     config = {
         'smoke_test_size': 500,  # Length of training set. 0 for all reviews.
-        'epochs': 5,             # Total number of epochs
+        'epochs': 10,             # Total number of epochs
         'batch_size': 100,        # Batch size for each epoch
         'training_dim': 200,     # Number of tokens (words) to put into each review.
         'vocab_size': 7000,      # Vocabulary size
         'output_size': 1,
         'embedding_dim': 400,
         'hidden_dim': 256,
-        'n_layers': 2,          # TODO: Figure out why this is not used.
-        'lr': 0.001,            # TODO: Figure out why this is not used.
+        'n_layers': 2,
+        'lr': 0.001
     }
 
     if args.predict:
