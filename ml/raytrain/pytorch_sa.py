@@ -131,7 +131,7 @@ def train_batches(dataloader, model, loss_fn, optimizer, config):
     This function contains the batch loop. It is used to train
     a model locally and remotely.
     '''
-    grad_clip = 5 # TODO - Put this in config if it is needed.
+    grad_clip = config['grad_clip']
 
     # Initialize the hidden state.
     h = model.init_hidden()
@@ -321,11 +321,11 @@ def main(args):
 
     # Configuration
     config = {
-        'smoke_test_size': 500,  # Length of training set. 0 for all reviews.
-        'epochs': 4,             # Total number of epochs
+        'smoke_test_size': 500,   # Length of training set. 0 for all reviews.
+        'epochs': 4,              # Total number of epochs
         'batch_size': 100,        # Batch size for each epoch
-        'training_dim': 200,     # Number of tokens (words) to put into each review.
-        'vocab_size': 7000,      # Vocabulary size
+        'training_dim': 200,      # Number of tokens (words) to put into each review.
+        'vocab_size': 7000,       # Vocabulary size
         'output_dim': 1,
         'embedding_dim': 400,
         'hidden_dim': 256,
