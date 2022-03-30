@@ -6,6 +6,7 @@ import argparse
 import os
 import threading
 import time
+from matplotlib.pyplot import bar_label
 
 import numpy as np
 import ray
@@ -59,7 +60,7 @@ class SentimentLSTM(nn.Module):
         embeds = self.embedding(x)
         
         lstm_out, hidden = self.lstm(embeds, hidden)
-
+        
         # stack up lstm outputs
         lstm_out = lstm_out.contiguous().view(-1, self.hidden_dim)
 
@@ -97,22 +98,15 @@ def training_setup(config):
     '''
     This function will the datasets, model, loss function, and optimzer.
     '''
-    vocab_size = config.get('vocab_size')
-    output_dim = config.get('output_dim')
-    embedding_dim = config.get('embedding_dim') #400
-    hidden_dim = config.get('hidden_dim') #256
-    n_layers = config.get('n_layers') #2
-    lr = config.get("lr", 1e-2)
-    batch_size = config.get('batch_size')
+    vocab_size = config['vocab_size']
+    output_dim = config['output_dim']
+    embedding_dim = config['embedding_dim']
+    hidden_dim = config['hidden_dim']
+    n_layers = config['n_layers']
+    lr = config['lr']
+    batch_size = config['batch_size']
 
-    X, y = pre.preprocess_data(config)
-
-    #print('Total number of reviews: ', len(X))
-    #analyze_length(X_train)
-    #analyze_length(X_valid)
-
-    # Split to create a validation set.
-    X_train, y_train, X_valid, y_valid = pre.split_dataset(X, y, 0.8)
+    X_train, y_train, X_valid, y_valid = pre.preprocess_train_valid_data(config)
 
     # Tensor datasets
     train_dataset = TensorDataset(torch.from_numpy(np.array(X_train)), torch.from_numpy(np.array(y_train)))
@@ -321,17 +315,18 @@ def main(args):
 
     # Configuration
     config = {
-        'smoke_test_size': 500,   # Length of training set. 0 for all reviews.
-        'epochs': 4,              # Total number of epochs
-        'batch_size': 100,        # Batch size for each epoch
-        'training_dim': 200,      # Number of tokens (words) to put into each review.
-        'vocab_size': 7000,       # Vocabulary size
-        'output_dim': 1,
-        'embedding_dim': 400,
-        'hidden_dim': 256,
-        'n_layers': 2,
-        'lr': 0.001,
-        'grad_clip': 5
+        'batch_size': 100,          # Batch size for each epoch
+        'dropout_prob': .5,         # Dropout probability
+        'embedding_dim': 400,       # Embedded dimension
+        'epochs': 4,                # Total number of epochs
+        'grad_clip': 5,             # Gradient Clip
+        'hidden_dim': 256,          # Hidden dimension
+        'lr': 0.001,                # Learning Rate
+        'n_layers': 2,              # Number of hidden layers in the LSTM
+        'output_dim': 1,            # Output dimension
+        'sequence_len': 200,        # Number of tokens (words) to put into each review.
+        'smoke_test_size': 500,     # Length of training set. 0 for all reviews.
+        'vocab_size': 7000          # Vocabulary size
     }
 
     if args.predict:

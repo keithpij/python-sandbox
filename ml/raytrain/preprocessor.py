@@ -172,9 +172,9 @@ def preprocess_train_valid_data(config):
     X_train = tokenize(X_train, word_to_int_mapping)
     X_valid = tokenize(X_valid, word_to_int_mapping)
 
-    training_dim = config['training_dim']
-    X_train = reshape(X_train, training_dim)
-    X_valid = reshape(X_valid, training_dim)
+    sequence_len = config['sequence_len']
+    X_train = reshape(X_train, sequence_len)
+    X_valid = reshape(X_valid, sequence_len)
 
     return X_train, y_train, X_valid, y_valid
 
@@ -191,8 +191,8 @@ def preprocess_test_data(config):
 
     X_test = tokenize(X_test, word_to_int_mapping)
 
-    training_dim = config.get('training_dim', 200)
-    X_test = reshape(X_test, training_dim)
+    sequence_len = config.get('sequence_len', 200)
+    X_test = reshape(X_test, sequence_len)
     return X_test, y_test
 
 
@@ -201,7 +201,7 @@ def preprocess_text(config, text):
     Preprocess raw review text entered by a user.
     '''
     vocab_size = config.get('vocab_size')
-    training_dim = config.get('training_dim', 200)
+    sequence_len = config.get('sequence_len', 200)
 
     with open('word_to_int_mapping.json') as json_file:
         word_to_int_mapping = json.load(json_file)
@@ -212,11 +212,11 @@ def preprocess_text(config, text):
 
     num_tokens = len(tokens)
 
-    if num_tokens <= training_dim:
-        zeroes = list(np.zeros(training_dim-num_tokens, dtype=int))
+    if num_tokens <= sequence_len:
+        zeroes = list(np.zeros(sequence_len-num_tokens, dtype=int))
         new = tokens + zeroes
-    elif num_tokens > training_dim:
-        new = tokens[0:training_dim]
+    elif num_tokens > sequence_len:
+        new = tokens[0:sequence_len]
     tokens = new    
 
     return [tokens]
@@ -227,7 +227,7 @@ def preprocess_file(config, pos_or_neg, file_name):
     Preprocess raw review text found in a single file found within the test set.
     '''
     vocab_size = config.get('vocab_size')
-    training_dim = config.get('training_dim', 200)
+    sequence_len = config.get('sequence_len', 200)
 
     with open('word_to_int_mapping.json') as json_file:
         word_to_int_mapping = json.load(json_file)
@@ -243,11 +243,11 @@ def preprocess_file(config, pos_or_neg, file_name):
 
     num_tokens = len(tokens)
 
-    if num_tokens <= training_dim:
-        zeroes = list(np.zeros(training_dim-num_tokens, dtype=int))
+    if num_tokens <= sequence_len:
+        zeroes = list(np.zeros(sequence_len-num_tokens, dtype=int))
         new = tokens + zeroes
-    elif num_tokens > training_dim:
-        new = tokens[0:training_dim]
+    elif num_tokens > sequence_len:
+        new = tokens[0:sequence_len]
     tokens = new    
 
     return [tokens], review
