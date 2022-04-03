@@ -207,16 +207,15 @@ def main(args):
     '''
     # Configuration
     config = {
-        'smoke_test_size': 500,  # Length of training set. 0 for all reviews.
-        'epochs': 10,             # Total number of epochs
-        'batch_size': 100,        # Batch size for each epoch
-        'training_dim': 200,     # Number of tokens (words) to put into each review.
-        'vocab_size': 7000,      # Vocabulary size
-        'output_size': 1,
-        'embedding_dim': 400,
-        'hidden_dim': 256,
-        'n_layers': 2,
-        'lr': 0.001
+        'batch_size': 100,          # Batch size for each epoch
+        'epochs': 10,               # Total number of epochs
+        'embedding_dim': 400,       # Embedded dimension
+        'hidden_dim': 256,          # Hidden dimension
+        'lr': 0.001,                # Learning Rate
+        'output_size': 1,           # Output size
+        'sequence_len': 200,        # Number of tokens (words) to put into each review.
+        'smoke_test_size': 500,     # Length of training set. 0 for all reviews.
+        'vocab_size': 7000          # Vocabulary size
     }
 
     if args.predict:

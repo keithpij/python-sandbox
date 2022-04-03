@@ -3,6 +3,8 @@ nltk
 numpy
 pandas
 matplotlib
+ray
+sklearn
 torch
 tensorflow
 tensorflow_datasets
