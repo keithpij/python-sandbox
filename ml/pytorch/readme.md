@@ -1,5 +1,5 @@
 
-### Set up a virtual environment ###
+### Set up a virtual environment
 
 It is a convention in the Python community to create a virtual environment named '.venv' in the root of your repo.
 To create a virual environment named '.venv' use the following command below. 

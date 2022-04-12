@@ -5,6 +5,7 @@
 /ml/raytrain/*.tf
 ml/fastai/animals
 ml/fastai/images
+datasets/
 
 # Virtual environments
 .venv/
