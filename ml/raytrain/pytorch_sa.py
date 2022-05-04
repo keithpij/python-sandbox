@@ -24,10 +24,10 @@ import preprocessor as pre
 
 class SentimentLSTM(nn.Module):
     '''
-    An LSTM is a type of RNN network the  that will be used to perform Sentiment analysis.
+    An LSTM is a type of RNN network that can be used to perform Sentiment analysis.
     '''
 
-    def __init__(self, vocab_size, output_dim, embedding_dim, hidden_dim, n_layers, batch_size):
+    def __init__(self, vocab_size, output_dim, embedding_dim, hidden_dim, n_layers, batch_size, dropout_prob):
         '''
         Initialize the model and set up the layers.
         '''
@@ -38,16 +38,21 @@ class SentimentLSTM(nn.Module):
         self.hidden_dim = hidden_dim
         self.batch_size = batch_size
         self.vocab_size = vocab_size
+        self.dropout_prob = dropout_prob
 
-        # layers
+        # Embedding layer
         self.embedding = nn.Embedding(vocab_size, embedding_dim)
-        self.lstm = nn.LSTM(input_size=embedding_dim, hidden_size=hidden_dim, num_layers=n_layers, dropout=0.5, batch_first=True)
+
+        # LSTM Layer
+        self.lstm = nn.LSTM(input_size=embedding_dim, hidden_size=hidden_dim, num_layers=n_layers, batch_first=True)
 
         #self.hidden = self.init_hidden()
-        self.dropout = nn.Dropout(0.3)
+        self.dropout = nn.Dropout(dropout_prob)
 
-        # linear and sigmoid layers
+        # Linear layer
         self.fcl = nn.Linear(hidden_dim, output_dim)
+
+        # Sigmoid layer
         self.sig = nn.Sigmoid()
 
     def forward(self, x, hidden):
