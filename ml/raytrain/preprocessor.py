@@ -2,6 +2,7 @@ from collections import Counter
 import json
 import os
 from string import punctuation
+from typing import List
 
 import matplotlib.pyplot as plt
 import numpy as np

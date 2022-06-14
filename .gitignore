@@ -1,5 +1,5 @@
 # Internet movie database for sentiment analysis.
-/ml/raytrain/aclImdb/*
+#/ml/raytrain/aclImdb/*
 /ml/raytrain/*.pt
 /ml/raytrain/*.h5
 /ml/raytrain/*.tf
