@@ -16,8 +16,7 @@ On Windows use:
 To deactivate:
     deactivate
 
-To install all the packages in the requirements.txt file run the folling command once you have 
-activated your virtual environment:
+To install all the packages in the requirements.txt file run the folling command once you have activated your virtual environment:
 
     pip install -r requirements.txt
 
@@ -27,3 +26,9 @@ Download the Large Movie Review Dataset:
 
 Unzip the downloaded tar.gz file and move the aclImdb folder to the folder containing this code.
 
+### Using pyenv
+to start your shell:
+    pyenv shell 3.10.0
+
+If your shell does not seem to be going into effect then try this command:
+    eval "$(pyenv init --path)"
