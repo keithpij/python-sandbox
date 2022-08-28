@@ -10,11 +10,11 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 from torch import seed
 
-
-TRAIN_NEGATIVE_REVIEWS_DIR = os.path.join(os.getcwd(), 'aclImdb', 'train', 'neg')
-TRAIN_POSITIVE_REVIEWS_DIR = os.path.join(os.getcwd(), 'aclImdb', 'train', 'pos')
-TEST_NEGATIVE_REVIEWS_DIR = os.path.join(os.getcwd(), 'aclImdb', 'test', 'neg')
-TEST_POSITIVE_REVIEWS_DIR = os.path.join(os.getcwd(), 'aclImdb', 'test', 'pos')
+DATASETS_DIR = os.path.join(os.pardir, os.pardir, 'datasets')
+TRAIN_NEGATIVE_REVIEWS_DIR = os.path.join(DATASETS_DIR, 'aclImdb', 'train', 'neg')
+TRAIN_POSITIVE_REVIEWS_DIR = os.path.join(DATASETS_DIR, 'aclImdb', 'train', 'pos')
+TEST_NEGATIVE_REVIEWS_DIR = os.path.join(DATASETS_DIR, 'aclImdb', 'test', 'neg')
+TEST_POSITIVE_REVIEWS_DIR = os.path.join(DATASETS_DIR, 'aclImdb', 'test', 'pos')
 
 TEST_REVIEWS_DIR = os.path.join(os.getcwd(), 'aclImdb', 'test')
 

@@ -110,6 +110,7 @@ def training_setup(config):
     n_layers = config['n_layers']
     lr = config['lr']
     batch_size = config['batch_size']
+    dropout_prob = config['dropout_prob']
 
     X_train, y_train, X_valid, y_valid = pre.preprocess_train_valid_data(config)
 
@@ -117,8 +118,8 @@ def training_setup(config):
     train_dataset = TensorDataset(torch.from_numpy(np.array(X_train)), torch.from_numpy(np.array(y_train)))
     val_dataset = TensorDataset(torch.from_numpy(np.array(X_valid)), torch.from_numpy(np.array(y_valid)))
 
-    model = SentimentLSTM(vocab_size, output_dim, embedding_dim, hidden_dim, n_layers, batch_size)
-    
+    model = SentimentLSTM(vocab_size, output_dim, embedding_dim, hidden_dim, n_layers, batch_size, dropout_prob)
+
     loss_fn = nn.BCELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 
