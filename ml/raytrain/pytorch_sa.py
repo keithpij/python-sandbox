@@ -21,6 +21,7 @@ import torch.nn as nn
 
 import preprocessor as pre
 
+DEVICE = None
 
 class SentimentLSTM(nn.Module):
     '''
@@ -94,10 +95,11 @@ class SentimentLSTM(nn.Module):
         if not batch_size:
             batch_size = self.batch_size
 
-        h0 = torch.zeros((self.n_layers, batch_size, self.hidden_dim))
-        c0 = torch.zeros((self.n_layers, batch_size, self.hidden_dim))
-        hidden = (h0,c0)
+        h0 = torch.zeros((self.n_layers, batch_size, self.hidden_dim)).to(DEVICE)
+        c0 = torch.zeros((self.n_layers, batch_size, self.hidden_dim)).to(DEVICE)
+        hidden = (h0, c0)
         return hidden
+
 
 def training_setup(config):
     '''
@@ -119,6 +121,9 @@ def training_setup(config):
     val_dataset = TensorDataset(torch.from_numpy(np.array(X_valid)), torch.from_numpy(np.array(y_valid)))
 
     model = SentimentLSTM(vocab_size, output_dim, embedding_dim, hidden_dim, n_layers, batch_size, dropout_prob)
+    
+    # Move model to the device.
+    model.to(DEVICE)
 
     loss_fn = nn.BCELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
@@ -138,9 +143,14 @@ def train_batches(dataloader, model, loss_fn, optimizer, config):
 
     # batch loop
     for inputs, labels in dataloader:
+
+        inputs.to(DEVICE)
+        labels.to(DEVICE)
+
         # Create new variables for the hidden state, otherwise we
         # would backprop through the entire training history.
         h = tuple([each.data for each in h])
+
         # zero accumulated gradients
         model.zero_grad()
 
@@ -314,6 +324,29 @@ def predict(model, config, pos_or_neg, file_name):
     print(output.item())
 
 
+def get_device(config):
+    device_config = config['device']
+
+    cuda_available = torch.cuda.is_available()
+    if cuda_available:
+        print('GPU is available.')
+    else:
+        print('GPU not available.')
+
+    if device_config == 'gpu':
+        device = torch.device('cuda')
+
+    if device_config == 'cpu':
+        device = torch.device('cpu')
+
+    if device_config == 'detect':
+        if cuda_available:
+            device = torch.device('cuda')
+        else:
+            device = torch.device('cpu')
+
+    return device
+
 def main(args):
     '''
     Main entry point.
@@ -322,10 +355,11 @@ def main(args):
     # Configuration
     config = {
         'batch_size': 100,          # Batch size for each epoch
+        'device': 'detect',         # cpu, cuda, or detect
         'dropout_prob': .5,         # Dropout probability
         'embedding_dim': 400,       # Embedded dimension
         'epochs': 4,                # Total number of epochs
-        'grad_clip': 5,             # Gradient Clip
+        'grad_clip': 10,             # Gradient Clip
         'hidden_dim': 256,          # Hidden dimension
         'lr': 0.001,                # Learning Rate
         'n_layers': 2,              # Number of hidden layers in the LSTM
@@ -334,6 +368,8 @@ def main(args):
         'smoke_test_size': 500,     # Length of training set. 0 for all reviews.
         'vocab_size': 7000          # Vocabulary size
     }
+    
+    DEVICE = get_device(config)
 
     if args.predict:
         model = load_model(args.model, config)
