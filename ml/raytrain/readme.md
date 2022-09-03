@@ -14,7 +14,7 @@ MacOS or Linux:
     source .venv/bin/activate
 
 Windows:
-    source .venv/Scripts/activate
+    .venv\Scripts\activate.bat
 
 ### Deactivating a Virtual Environment
 To deactivate:
