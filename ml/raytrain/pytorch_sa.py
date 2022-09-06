@@ -66,7 +66,7 @@ class SentimentLSTM(nn.Module):
         embeds = self.embedding(x)
         
         lstm_out, hidden = self.lstm(embeds, hidden)
-        
+
         # stack up lstm outputs
         lstm_out = lstm_out.contiguous().view(-1, self.hidden_dim)
 
