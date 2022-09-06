@@ -88,6 +88,7 @@ def create_tokens(X, vocab_size):
     count_by_word = Counter(words_list)
     total_words = len(count_by_word)
     count_by_word_sorted = count_by_word.most_common(total_words)
+
     word_to_int_mapping = {}
     for i, (w,c) in enumerate(count_by_word_sorted):
         if i == vocab_size-1:  # Leave one for 0 padding.
@@ -96,8 +97,6 @@ def create_tokens(X, vocab_size):
 
     #word_to_int_mapping = {w:i+1 for i, (w,c) in enumerate(count_by_word_sorted)}
 
-    #print(word_to_int_mapping)
-    #bra
     return word_to_int_mapping
 
 
@@ -105,16 +104,12 @@ def tokenize(X, mapping):
     entries_int = []
     for entry_text in X:
         entry_int = tokenize_text(entry_text, mapping)
-        #entry_int = []
-        #for w in entry_text.split():
-        #    if w in mapping:
-        #        entry_int.append(mapping[w])
-        #entry_int = [mapping[w] for w in entry_text.split()]
         entries_int.append(entry_int)
     return entries_int
 
 
 def tokenize_text(text, mapping):
+    #entry_int = [mapping[w] for w in entry_text.split()]
     entry_int = []
     for w in text.split():
         if w in mapping:
@@ -154,6 +149,8 @@ def reshape(X, seq_length):
         elif review_len > seq_length:
             new = review[0:seq_length]
 
+        assert len(new) == seq_length, f'Review length is {len(new)}.'
+
         features[i,:] = np.array(new)
 
     return features
@@ -162,6 +159,7 @@ def reshape(X, seq_length):
 def preprocess_train_valid_data(config):
     smoke_test_size = config['smoke_test_size']
     vocab_size = config['vocab_size']
+    sequence_len = config['sequence_len']
 
     X_train, y_train, X_valid, y_valid = get_train_valid_data(smoke_test_size)
 
@@ -173,7 +171,6 @@ def preprocess_train_valid_data(config):
     X_train = tokenize(X_train, word_to_int_mapping)
     X_valid = tokenize(X_valid, word_to_int_mapping)
 
-    sequence_len = config['sequence_len']
     X_train = reshape(X_train, sequence_len)
     X_valid = reshape(X_valid, sequence_len)
 
