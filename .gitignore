@@ -8,6 +8,9 @@ ml/fastai/images
 ml/pytorch/mnist_data
 datasets/
 
+# Images
+*.png
+
 # Virtual environments
 .venv/
 
