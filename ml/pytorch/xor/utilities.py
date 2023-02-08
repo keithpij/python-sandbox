@@ -66,8 +66,7 @@ def train_model(model: nn.Module, config, X_train, y_train) -> Tuple[nn.Module, 
             model.zero_grad()
             optimizer.zero_grad()
 
-            # Forward pass - this will get log probabilities for every word 
-            # in our vocabulary which is now represented as embeddings.
+            # Forward pass
             prediction = model(X_tensor)
 
             # Compute the loss.
